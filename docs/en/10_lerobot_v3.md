@@ -2,7 +2,7 @@
 
 [Back to contents](../index.md#english) · [中文](../zh/10_lerobot_v3.md)
 
-Released data follows [LeRobotDataset v3.0](https://github.com/huggingface/lerobot). The mini release on HF (`InternRobotics/EgoExplorer`, `dataset/lerobot/`: 18 episodes, 130,590 frames, 10 task templates, all Wuji) was converted from `unified_30hz` + the raw recordings following this chapter. The converter (`build_dataset_new.py`, `converter_version 2.0.0`) will be released with the toolkit.
+Released data follows [LeRobotDataset v3.0](https://github.com/huggingface/lerobot). The mini release on HF (`InternRobotics/EgoExplorer`, `dataset/lerobot/`: 18 episodes, 130,590 frames, 10 task templates, all Wuji) was converted from `unified_30hz` + the raw recordings following this chapter. The converter is `scripts/build_lerobot_dataset.py` in the toolkit; it reads the toolkit's own outputs (raw recordings + `unified_30hz/`).
 
 ## 10.1 Layout
 
@@ -45,20 +45,50 @@ The full version described in the paper and the HF card adds: SMPL-X body (world
 
 *Every recording carries step-level annotations: step ID, description, interval bounds, skill, object roles and outcome.*
 
-## 10.3 Conversion steps
+## 10.3 Running the conversion
+
+**1. Episode list** (CSV, one row per episode, row order = episode order):
+
+```csv
+session,task_zh,task_en,environment_type,trim_head_s,trim_tail_s
+session_20260901_154755_物料称量,物料称量,Weighing,lab,0,5
+session_20260916_112944_萃取,萃取,Extraction,lab,0,0
+```
+
+`environment_type` is `lab` or `home` (written as `scene_id`); `trim_head_s / trim_tail_s` are optional head/tail trims.
+
+**2. Run**:
+
+```bash
+python scripts/build_lerobot_dataset.py \
+  --episodes episodes.csv \
+  --raw-root $WORK/input/ego_data_sync \
+  --unified-root $WORK/out/unified_30hz \
+  --projected-root $WORK/out/projected \
+  --captions-root <step-annotation folder, optional> \
+  --output $WORK/out/lerobot
+```
+
+- `--projected-root` is optional and adds fit residuals to `quality.json`; `--captions-root` holds `<session>.en.jsonl` step annotations, leave it out if there are none.
+- Video encoding needs `ffmpeg`; videos already encoded are skipped, so the run resumes.
+- Other options: `--crop-top` (default 110 px), `--fx/--fy/--cx/--cy` (camera intrinsics written to `calibration.json`), `--license`, `--privacy-status`.
+- It self-checks at the end: every episode's parquet row count equals its video frame count and `timestamp` lies on the 1/30 s grid (error < 1e-4 s). `--validate-only` checks an existing dataset.
+- Measured on one 192 s Wuji recording: about 1 minute on a Mac CPU, 5,620 frames, video frames = parquet rows, grid error 7×10⁻⁶ s; `LeRobotDataset` from `lerobot` 0.4.4 reads the first, middle and last frames (video decoding included) at its default tolerance.
+
+## 10.4 What the converter does
 
 1. **Select episodes.** Candidates = status ok in the quality table ∩ has step annotations ∩ has SMPL-X ∩ (if touch is released) touch on both hands. Rank by residual, e.g. p50 ≈ 3–4 mm, p95 < 8 mm, mean rotation error < 7°. Heads and tails may be trimmed (record `trim_head_s` / `trim_tail_s` in the metadata).
 2. **Re-encode video to strict 30 fps CFR.** The raw mp4 is VFR; `timestamp` and pts differ by up to ~25 ms, which breaks LeRobot's default `tolerance_s = 1e-4` on read. Use ffmpeg with `crop=1920:970:0:110, fps=30` and `-fps_mode cfr`; afterwards `timestamp = k/30` matches the pts one to one (check `max|pts − timestamp| ≤ 1.5e-5 s`).
 3. **Use the video frame timeline as the episode timeline.** Interpolate trackers from the raw `*.tracker.npz` (~65 Hz) onto each video frame time using valid samples only: linear for position, shortest-path Slerp for orientation. **Guards**: across a native dropout > 0.25 s, or a position step > 0.10 m / orientation step > 60° between neighbouring samples (relocalisation or a bad frame), do not interpolate through the discontinuity; hold the nearer native sample. Write per-role interpolation statistics to `quality.json → tracker_interpolation`.
-4. **Convert quaternions to xyzw** and also write `rotation_6d`.
+4. **Convert quaternions to xyzw** (raw files are wxyz) and also write `rotation_6d`.
 5. **Hands and touch** come from `unified_30hz` (resampled to the video timeline). A hand missing from the export is rebuilt from the raw glove npz with the same `wuji_correct` L0→L4 pipeline, and its source is recorded in `metadata.json` / `info.json → tactile_processing.per_episode_hand_source`. Regions without healthy taxels get `NaN` score/residual and constant-0 contact; per-region coverage goes into `coverage_17`.
 6. **SMPL-X** is stored once per episode in `episode_meta/*/smplx/smplx_episode.npz` (same keys as unified_30hz); shape, scale and mounts go into `calibration.json` instead of repeating in every row.
 7. **Write meta**: `info.json` (features, `coordinate_system`, `tracker_processing`, `tactile_processing`, `converter_version`), `stats.json`, `tasks.parquet`, `episodes/…parquet`.
 8. **Validate**:
-   - structural and numerical checks (782 checks, all passing, for the mini release);
-   - an end-to-end read of every episode's video and data through `LeRobotDataset` at the **default tolerance**.
+   - the converter's own check: parquet rows = video frames, `timestamp` on the 1/30 s grid;
+   - before release, an end-to-end read of every episode's video and data through `LeRobotDataset` at the **default tolerance** (needs `lerobot` installed, see 10.5).
 
-## 10.4 Reading
+## 10.5 Reading
 
 ```python
 from lerobot.datasets.lerobot_dataset import LeRobotDataset
@@ -84,7 +114,7 @@ out = m(betas=torch.tensor(z["betas"])[None].expand(T, -1),
 world = float(z["scale"]) * out.vertices.numpy() + z["transl"][:, None]   # same world frame as the trackers (+Y up)
 ```
 
-## 10.5 Open items to settle before the full release
+## 10.6 Open items to settle before the full release
 
 - **Translation convention**: the mini release's `smplx_episode.npz` keeps the unified_30hz convention (`world = scale · SMPL-X(transl=0) + transl`); the full version described in the paper and HF card stores the **world pelvis position** in the translation field instead of the SMPL-X library's additive `transl` (conversion in 11.4). Pick one before the full release and state it in `info.json`.
 - **Video key**: the mini release uses `observation.images.camera_0`; the paper appendix says `observation.images.ego`.

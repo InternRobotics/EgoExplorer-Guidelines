@@ -72,7 +72,28 @@ python -m pip install -r requirements.txt      # numpy / opencv-python / msgpack
 
 The script never flushes existing addresses and never touches the NIC carrying the default route. If the glove IPs were changed, pass `--left-ip`, `--right-ip` and `--host-prefix`.
 
-**Wuji calibration bundle**: at startup the recorder imports the glove calibration from `wuji_calibration/` (`--wuji-calibration` to point elsewhere, `--no-wuji-calibration` to use the SDK's current user). This folder comes from Wuji's own calibration tool and is not in the repository; get it from the person in charge of the devices.
+**Wuji glove calibration bundle**: every pair of Wuji gloves needs a hand calibration first (the SDK learns the hand model of these gloves and their wearer), stored under a Wuji SDK "user". At startup the recorder imports `wuji_calibration/calibration_bundle.zip` and switches to its owner user (`--wuji-calibration` for another path, `--no-wuji-calibration` to skip it and use the SDK's current user). The bundle is not in the repository; produce it like this:
+
+1. Close Wuji Studio (it holds the SDK) and make sure `setup_wuji_gloves.sh --check` finds both gloves.
+2. Create an SDK user to hold this pair's calibration (one per pair is enough):
+   ```bash
+   cd capture
+   python scripts/wuji_calibration_tool.py users                  # existing users, * = current
+   python scripts/wuji_calibration_tool.py create-user "rig-A"    # note the returned user_id
+   ```
+3. Calibrate:
+   ```bash
+   python scripts/wuji_calibration_tool.py calibrate --user <user_id>
+   ```
+   This runs the SDK hand calibration for each glove; the terminal prints each requested pose (step name, state, hints) — follow them through. Calibrating the same user in Wuji Studio works too.
+4. Export:
+   ```bash
+   python scripts/wuji_calibration_tool.py export --user <user_id>   # -> wuji_calibration/calibration_bundle.zip
+   python scripts/wuji_calibration_tool.py preview                   # validate the bundle without importing
+   ```
+5. Distribute: copy `calibration_bundle.zip` into `capture/wuji_calibration/` on the other capture machines; the recorder imports it at startup and prints the loaded calibration user. Use `wuji_calibration_tool.py import` to import by hand.
+
+Requires `wuji-sdk>=2026.7.21`. Recalibrate and re-export after changing or repairing gloves.
 
 **Capture card**:
 
@@ -96,13 +117,13 @@ Never expose 8766 to the internet; even on a trusted LAN, set the same `--tracke
 ## 2.4 Windows capture PC for the MANUS rig
 
 - Same `requirements.txt` (on Windows it installs `pyopenxr` and skips `wuji-sdk`).
-- Run `ManusClient/SDKMinimalClient_Windows.exe` (with `ManusSDK.dll` in the same folder) and point it at the recorder's IP and port (default `0.0.0.0:9000`).
+- **Download the MANUS UDP sender yourself** (MANUS SDK licence; not in the repository): install MANUS Core and download the MANUS SDK from the MANUS website, and put the UDP sender `SDKMinimalClient_Windows.exe` and `ManusSDK.dll` in `capture/ManusClient/` (steps and the UDP packet format are in that folder's `README.md`). Point it at the recorder's IP and port (default `0.0.0.0:9000`).
 - The capture card uses DirectShow on Windows.
 
 ## 2.5 Pre-capture checklist
 
 - [ ] All five trackers online in SteamVR with the right roles
-- [ ] Wuji: `setup_wuji_gloves.sh --check` passes and both gloves scan; Wuji Studio is closed (it holds the SDK)
+- [ ] Wuji: `setup_wuji_gloves.sh --check` passes and both gloves scan; Wuji Studio is closed (it holds the SDK); `wuji_calibration/calibration_bundle.zip` belongs to this pair of gloves
 - [ ] MANUS: the UDP sender is running with the right target IP / port
 - [ ] The recorder page shows "Tracker connected", with a camera preview and live tracker poses
 - [ ] Enough free disk

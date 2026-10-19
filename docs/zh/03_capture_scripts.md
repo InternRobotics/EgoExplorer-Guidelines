@@ -15,9 +15,11 @@ capture/
 ├── record_ego/                     采集主程序：配置、录制控制、会话落盘、上传
 ├── devices/                        设备驱动：wuji_glove / manus_glove / vive_tracker / network_tracker / gopro_camera
 ├── network_bridge/protocol.py      TCP / MessagePack 分帧协议
-├── ManusClient/                    MANUS UDP 发送端及运行库（Windows）
+├── ManusClient/                    MANUS UDP 发送端（Windows，需自行下载，见 README）
+├── wuji_calibration/               Wuji 手套标定 bundle 的导入 / 导出（bundle 本身不入库）
 ├── scripts/
 │   ├── setup_wuji_gloves.sh        Wuji 手套网卡配置与检查
+│   ├── wuji_calibration_tool.py    Wuji 手套标定、导出 / 导入标定 bundle（第 2.3 节）
 │   ├── start_tracker_sender.ps1    Windows 端 tracker 发送启动脚本
 │   ├── wuji_launch.sh              Wuji 方案一键启动（按本机修改路径）
 │   ├── rclone_linux.sh             上传数据（Linux）

@@ -35,8 +35,8 @@ pip install --no-deps human_body_prior              # VPoser；加 --no-deps，�
 |---|---|
 | `models/smplx/SMPLX_NEUTRAL.npz` | [SMPL-X 官网](https://smpl-x.is.tue.mpg.de/)（需注册，遵守其许可） |
 | `models/vposer/V02_05/` | VPoser（[human_body_prior](https://github.com/nghorbani/human_body_prior)，模型在 SMPL-X 官网下载） |
-| `ckpt/avatarposer_five_v3/model.pt` | 我们的 v3 proposal 网络，随工具包发布 |
-| `outputs/calibration_motion_vposer_mano.npz` | 01–17 标定参考动作缓存，随工具包发布（也可用 `scripts/render_calibration_protocol.py --rebuild-motion-cache` 重建） |
+| `ckpt/avatarposer_five_v3/model.pt` | 我们的 v3 proposal 网络（仓库自带） |
+| `assets/calibration_motion_vposer_mano.npz` | 01–17 标定参考动作缓存（仓库自带；也可用 `scripts/render_calibration_protocol.py --rebuild-motion-cache` 重建） |
 | `outputs/external_models/avatarposer.pth` | [官方 AvatarPoser](https://github.com/eth-siplab/AvatarPoser)，只有重训练时需要 |
 
 ## 7.3 工作目录约定

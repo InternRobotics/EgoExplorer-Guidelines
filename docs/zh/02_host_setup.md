@@ -72,7 +72,28 @@ python -m pip install -r requirements.txt      # numpy / opencv-python / msgpack
 
 脚本不会清空已有网卡地址，也不会改承载默认路由的网卡。手套 IP 改过时用 `--left-ip`、`--right-ip`、`--host-prefix` 指定。
 
-**Wuji 标定 bundle**：采集程序启动时会导入 `wuji_calibration/` 下的手套标定（`--wuji-calibration` 指定路径，`--no-wuji-calibration` 跳过并使用 SDK 当前用户）。这个目录来自 Wuji 官方标定工具，不在仓库里，向设备负责人获取。
+**Wuji 手套标定 bundle**：每副 Wuji 手套都要先做手部标定（让 SDK 学到这副手套和佩戴者的手部模型），标定结果保存在 Wuji SDK 的某个"用户"下。采集程序启动时会导入 `wuji_calibration/calibration_bundle.zip` 并切换到它的所属用户（`--wuji-calibration` 指定其它路径，`--no-wuji-calibration` 跳过、直接用 SDK 当前用户）。这个 bundle 不入库，按下面的步骤生成：
+
+1. 关闭 Wuji Studio（它会占用 SDK），确认 `setup_wuji_gloves.sh --check` 能扫到两只手套。
+2. 建一个 SDK 用户来保存这副手套的标定（同一副手套只需要一个）：
+   ```bash
+   cd capture
+   python scripts/wuji_calibration_tool.py users                  # 列出已有用户，* 为当前用户
+   python scripts/wuji_calibration_tool.py create-user "rig-A"    # 记下返回的 user_id
+   ```
+3. 标定：
+   ```bash
+   python scripts/wuji_calibration_tool.py calibrate --user <user_id>
+   ```
+   逐只手套运行 SDK 的手部标定，终端会逐步提示要摆的手势（每步的名称、状态和提示），按提示做完即可。也可以在 Wuji Studio 里对同一个用户完成标定。
+4. 导出：
+   ```bash
+   python scripts/wuji_calibration_tool.py export --user <user_id>   # → wuji_calibration/calibration_bundle.zip
+   python scripts/wuji_calibration_tool.py preview                   # 校验 bundle 内容（不导入）
+   ```
+5. 分发：把 `calibration_bundle.zip` 拷到其它采集机的 `capture/wuji_calibration/` 下，采集程序启动时会自动导入，终端打印 `已加载标定用户 …` 即成功。手动导入用 `wuji_calibration_tool.py import`。
+
+需要 `wuji-sdk>=2026.7.21`。换手套、手套返修后要重新标定并导出。
 
 **采集卡**：
 
@@ -96,13 +117,13 @@ sudo ufw allow from <WINDOWS_IP> to any port 8766 proto tcp
 ## 2.4 MANUS 方案的 Windows 采集机
 
 - 依赖同 `requirements.txt`（Windows 上会装 `pyopenxr`，不装 `wuji-sdk`）。
-- 运行 `ManusClient/SDKMinimalClient_Windows.exe`（`ManusSDK.dll` 放在同一目录），把发送目标设成采集端的 IP 和端口（默认 `0.0.0.0:9000`）。
+- **MANUS UDP 发送端需要自己下载**（受 MANUS SDK 许可约束，不随仓库分发）：从 MANUS 官网安装 MANUS Core 并下载 MANUS SDK，把 UDP 发送端 `SDKMinimalClient_Windows.exe` 和 `ManusSDK.dll` 放到 `capture/ManusClient/`（详细步骤和 UDP 数据包格式见该目录下的 `README.md`）。运行后把发送目标设成采集端的 IP 和端口（默认 `0.0.0.0:9000`）。
 - 采集卡在 Windows 上走 DirectShow。
 
 ## 2.5 采集前自检清单
 
 - [ ] 五个 tracker 在 SteamVR 里角色正确、全部在线
-- [ ] Wuji：`setup_wuji_gloves.sh --check` 通过，两只手套都能扫描到；已关闭 Wuji Studio（它会占用 SDK）
+- [ ] Wuji：`setup_wuji_gloves.sh --check` 通过，两只手套都能扫描到；已关闭 Wuji Studio（它会占用 SDK）；`wuji_calibration/calibration_bundle.zip` 是这副手套的
 - [ ] MANUS：UDP 发送端已启动，目标 IP / 端口正确
 - [ ] 采集页面顶部显示"Tracker 已连接"，相机预览和 tracker 3D 位姿正常
 - [ ] 磁盘剩余空间充足

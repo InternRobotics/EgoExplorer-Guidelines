@@ -2,7 +2,7 @@
 
 [返回目录](../index.md) · [English](../en/10_lerobot_v3.md)
 
-发布数据遵循 [LeRobotDataset v3.0](https://github.com/huggingface/lerobot)。HF 上的 mini release（`InternRobotics/EgoExplorer`，`dataset/lerobot/`，18 个 episode、130,590 帧、10 类任务、全部为 Wuji）就是按本章流程从 `unified_30hz` + 原始录制转出来的。转换脚本（`build_dataset_new.py`，`converter_version 2.0.0`）将随工具包发布。
+发布数据遵循 [LeRobotDataset v3.0](https://github.com/huggingface/lerobot)。HF 上的 mini release（`InternRobotics/EgoExplorer`，`dataset/lerobot/`，18 个 episode、130,590 帧、10 类任务、全部为 Wuji）就是按本章流程从 `unified_30hz` + 原始录制转出来的。转换脚本是工具包里的 `scripts/build_lerobot_dataset.py`，直接读取本工具包的产出（原始录制 + `unified_30hz/`）。
 
 ## 10.1 目录结构
 
@@ -45,20 +45,50 @@
 
 *每条录制带步骤级标注：步骤 ID、描述、起止时间、技能、物体角色和结果。*
 
-## 10.3 转换步骤
+## 10.3 运行转换
+
+**1. 准备 episode 清单**（CSV，一行一个 episode，行序就是 episode 顺序）：
+
+```csv
+session,task_zh,task_en,environment_type,trim_head_s,trim_tail_s
+session_20260901_154755_物料称量,物料称量,Weighing,lab,0,5
+session_20260916_112944_萃取,萃取,Extraction,lab,0,0
+```
+
+`environment_type` 取 `lab` 或 `home`（写入 `scene_id`）；`trim_head_s / trim_tail_s` 可选，用来掐掉开头结尾。
+
+**2. 运行**：
+
+```bash
+python scripts/build_lerobot_dataset.py \
+  --episodes episodes.csv \
+  --raw-root $WORK/input/ego_data_sync \
+  --unified-root $WORK/out/unified_30hz \
+  --projected-root $WORK/out/projected \
+  --captions-root <步骤标注目录，可选> \
+  --output $WORK/out/lerobot
+```
+
+- `--projected-root` 可选，用来把拟合残差写进 `quality.json`；`--captions-root` 下放 `<session>.en.jsonl` 步骤标注，没有就留空。
+- 视频需要系统里有 `ffmpeg`；已编码的视频会跳过，可以断点续跑。
+- 其它选项：`--crop-top`（默认 110 px）、`--fx/--fy/--cx/--cy`（写入 `calibration.json` 的相机内参）、`--license`、`--privacy-status`。
+- 结束时自动做一次自检：每个 episode 的 parquet 行数等于视频帧数，`timestamp` 落在 1/30 s 栅格上（误差 < 1e-4 s）。只自检已有数据集用 `--validate-only`。
+- 在一条 192 s 的 Wuji 录制上实测：Mac CPU 约 1 分钟，输出 5,620 帧，视频帧数与 parquet 行数一致，栅格误差 7×10⁻⁶ s；用 `lerobot` 0.4.4 的 `LeRobotDataset` 在默认容差下读取首、中、末帧（含视频解码）均正常。
+
+## 10.4 转换器做了什么
 
 1. **选 episode。** 候选 = 质量表里 status=ok ∩ 有步骤标注 ∩ 有 SMPL-X ∩（要发布触觉时）双手触觉齐全。按残差挑：例如 p50 ≈ 3–4 mm、p95 < 8 mm、平均旋转误差 < 7°。可以掐头去尾（`trim_head_s` / `trim_tail_s` 记进 metadata）。
 2. **视频重编码为严格 30 fps CFR。** 原始 mp4 是 VFR，`timestamp` 与 pts 最多差约 25 ms，会触发 LeRobot 默认的 `tolerance_s = 1e-4` 读取报错。用 ffmpeg 做 `crop=1920:970:0:110, fps=30` 并加 `-fps_mode cfr`，之后 `timestamp = k/30` 与 pts 逐一对应（校验 `max|pts − timestamp| ≤ 1.5e-5 s`）。
 3. **以视频帧时间轴为 episode 时间轴。** tracker 从原始 `*.tracker.npz`（约 65 Hz）在有效样本上插值到每个视频帧时刻：位置线性，姿态最短路径 Slerp。**保护规则**：原生丢帧 > 0.25 s，或相邻样本位置跳变 > 0.10 m、姿态跳变 > 60°（tracker 重定位或坏帧）时，不跨这段插值，而是保持较近的端点样本。每个 role 的插值统计写进 `quality.json → tracker_interpolation`。
-4. **四元数转成 xyzw**，同时写 `rotation_6d`。
+4. **四元数转成 xyzw**（原始文件是 wxyz），同时写 `rotation_6d`。
 5. **手部与触觉**从 `unified_30hz` 取（重采样到视频时间轴）。导出里缺失的手，用同一条 `wuji_correct` L0→L4 管线从原始手套 npz 重建，并在 `metadata.json` / `info.json → tactile_processing.per_episode_hand_source` 里记录来源。没有健康 taxel 的区，score/residual 记 `NaN`、contact 恒为 0，逐区覆盖率记 `coverage_17`。
 6. **SMPL-X** 每个 episode 存一个 `episode_meta/*/smplx/smplx_episode.npz`（键与 unified_30hz 一致），体型、尺度、挂点放 `calibration.json`，不在每行重复。
 7. **写 meta**：`info.json`（features、`coordinate_system`、`tracker_processing`、`tactile_processing`、`converter_version`）、`stats.json`、`tasks.parquet`、`episodes/…parquet`。
 8. **校验**：
-   - 结构与数值检查（mini release 是 782 项全过）；
-   - 用 `LeRobotDataset` 在**默认容差**下端到端读取每个 episode 的视频和数据。
+   - 转换器自带的检查：parquet 行数 = 视频帧数，`timestamp` 在 1/30 s 栅格上；
+   - 发布前再用 `LeRobotDataset` 在**默认容差**下端到端读取每个 episode 的视频和数据（需要安装 `lerobot`，见 10.5 节）。
 
-## 10.4 读取示例
+## 10.5 读取示例
 
 ```python
 from lerobot.datasets.lerobot_dataset import LeRobotDataset
@@ -84,7 +114,7 @@ out = m(betas=torch.tensor(z["betas"])[None].expand(T, -1),
 world = float(z["scale"]) * out.vertices.numpy() + z["transl"][:, None]   # 与 tracker 同一世界系（+Y 向上）
 ```
 
-## 10.5 需要统一的地方
+## 10.6 需要统一的地方
 
 - **平移字段的约定**：mini release 的 `smplx_episode.npz` 沿用 unified_30hz 的约定（`world = scale · SMPL-X(transl=0) + transl`）；论文和 HF 数据卡描述的完整版本里，平移字段存的是**世界骨盆位置**，不是 SMPL-X 库的加性 `transl`（换算见第 11.4 节）。完整版发布前要定下来用哪一种，并写进 `info.json`。
 - **视频键名**：mini release 用 `observation.images.camera_0`，论文附录写的是 `observation.images.ego`。

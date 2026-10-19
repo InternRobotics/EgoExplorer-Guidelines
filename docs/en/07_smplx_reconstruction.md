@@ -35,8 +35,8 @@ Model files (under the toolkit root):
 |---|---|
 | `models/smplx/SMPLX_NEUTRAL.npz` | [SMPL-X website](https://smpl-x.is.tue.mpg.de/) (registration required; respect its licence) |
 | `models/vposer/V02_05/` | VPoser ([human_body_prior](https://github.com/nghorbani/human_body_prior); model downloaded from the SMPL-X website) |
-| `ckpt/avatarposer_five_v3/model.pt` | Our v3 proposal network, released with the toolkit |
-| `outputs/calibration_motion_vposer_mano.npz` | 01–17 calibration reference-motion cache, released with the toolkit (or rebuild with `scripts/render_calibration_protocol.py --rebuild-motion-cache`) |
+| `ckpt/avatarposer_five_v3/model.pt` | Our v3 proposal network (in the repository) |
+| `assets/calibration_motion_vposer_mano.npz` | 01–17 calibration reference-motion cache (in the repository; or rebuild with `scripts/render_calibration_protocol.py --rebuild-motion-cache`) |
 | `outputs/external_models/avatarposer.pth` | [Official AvatarPoser](https://github.com/eth-siplab/AvatarPoser), only needed for retraining |
 
 ## 7.3 Work-folder convention

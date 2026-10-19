@@ -22,7 +22,7 @@ As long as the mounts are unchanged, one profile can be reused across days and t
 
 ## 5.3 The protocol (01–17, about 144 s)
 
-Hold every static pose for at least 3 s; perform dynamic motions slowly, continuously and with controlled range. The collector follows the 3D reference animation `outputs/calibration_protocol_reference.html` (rotatable, zoomable, frame by frame) or the three-view MP4. **Follow the "subject left/right" labels on the page; the left side of the screen is not the subject's left.**
+Hold every static pose for at least 3 s; perform dynamic motions slowly, continuously and with controlled range. The collector follows the three-view reference video below (`assets/calibration_protocol_reference.mp4` in the toolkit). **Follow the "subject left/right" labels on the page; the left side of the screen is not the subject's left.**
 
 ![The 01–17 calibration reference (SMPL-X reference geometry, labelled with times in the reference motion)](../assets/img/protocol-fig.jpg)
 
@@ -66,17 +66,17 @@ A CPU is enough; run from the toolkit root:
 # --data: folder with one or more 01–17 recordings of the same subject and the same donning; height and arm span in metres
 PYTHONPATH=src python -m five_tracker_smplx.cli calibrate-subject \
   --data <calibration session root> \
-  --height 1.60 --armspan 1.50 \
+  --height <height_m> --armspan <armspan_m> \
   --output-dir $WORK/profiles/<subject>_<date> \
   --body-model-path models/smplx \
   --vposer-path models/vposer/V02_05 \
-  --motion-cache outputs/calibration_motion_vposer_mano.npz \
+  --motion-cache assets/calibration_motion_vposer_mano.npz \
   --iterations 1100 --optimized-betas 5 --device cpu
 ```
 
 - Stage alignment is automatic: 01–11 use the trackers' position/rotation features, 12–15 add glove joint motion energy, 16–17 use the joint rotation and horizontal displacement of head and ankles. Each recording gets a `protocol_alignment.json` (stage bounds, confidence). Stages 16–17 are only appended when a real turn and walk are detected.
 - If automatic alignment fails, stage bounds can be annotated by hand (`*_manual_alignment.json`) and used for calibration.
-- Optional `--smplx-prior <npz>`: betas recovered from video (e.g. GVHMR) as a shape prior only, never as per-frame alignment.
+- Optional `--smplx-prior <npz>`: betas recovered from video (e.g. GVHMR) as a shape prior only, never as per-frame alignment. The production profiles use it (weight 0.18); without it the mounts barely change but shape and scale differ.
 - Fitting principles: one translation/rotation per tracker for the whole sequence; release only the first few betas with height and arm span as strong constraints (fitting all 10 betas freely from five trackers is unobservable); the pelvis–neck angle to gravity is only a soft constraint.
 
 **Outputs**: `subject_profile.json` (format `five_tracker_smplx_subject_profile_v5_wxyz_source_columns`) + `subject_calibration.html` (acceptance page). Once it passes, copy `subject_profile.json` to `$WORK/profiles/<batch>.json`, where chapter 7 picks it up.
@@ -97,6 +97,6 @@ Check in `subject_calibration.html`:
 
 - The same rig worn by someone else is a new batch and needs a new profile.
 - Record in the capture log who recorded each session and which donning it belongs to.
-- If the log is missing and you are unsure who recorded a session, look at head height (how far the head tracker sits above the ankle trackers). Standing, it differs between people by enough centimetres to tell them apart; compare it with the value in each profile's calibration recordings. We have had one Wuji rig worn in turn by two collectors, at about 1.26–1.38 m and 1.40–1.54 m respectively.
+- If the log is missing and you are unsure who recorded a session, look at head height (how far the head tracker sits above the ankle trackers when standing). It differs between people by several centimetres; compare it with the value in each profile's calibration recordings.
 
 A wrong profile costs a lot: one session went from 62 mm RMS with the right profile to 80 mm with the wrong one.

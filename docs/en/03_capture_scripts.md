@@ -15,9 +15,11 @@ capture/
 ├── record_ego/                     capture program: config, recording control, session writing, upload
 ├── devices/                        drivers: wuji_glove / manus_glove / vive_tracker / network_tracker / gopro_camera
 ├── network_bridge/protocol.py      TCP / MessagePack framing
-├── ManusClient/                    MANUS UDP sender and runtime (Windows)
+├── ManusClient/                    MANUS UDP sender (Windows; download it yourself, see README)
+├── wuji_calibration/               import / export of Wuji calibration bundles (the bundle is not in the repo)
 ├── scripts/
 │   ├── setup_wuji_gloves.sh        Wuji glove NIC setup and checks
+│   ├── wuji_calibration_tool.py    Wuji glove calibration, bundle export / import (2.3)
 │   ├── start_tracker_sender.ps1    Windows tracker sender launcher
 │   ├── wuji_launch.sh              one-command Wuji launch (edit paths for your machine)
 │   ├── rclone_linux.sh             upload data (Linux)

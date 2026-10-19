@@ -22,7 +22,7 @@
 
 ## 5.3 标定动作（01–17，约 144 秒）
 
-静态姿态每个至少稳定 3 秒；动态动作慢速、连续、幅度可控。数采员看 3D 参考动画照做：`outputs/calibration_protocol_reference.html`（可旋转、缩放、逐帧查看），或三视角 MP4。**以页面上标的"受试者左/右"为准，不要把屏幕左侧当成受试者左侧。**
+静态姿态每个至少稳定 3 秒；动态动作慢速、连续、幅度可控。数采员看下面的三视角参考视频照做（工具包里是 `assets/calibration_protocol_reference.mp4`）。**以页面上标的"受试者左/右"为准，不要把屏幕左侧当成受试者左侧。**
 
 ![01–17 标定动作参考（SMPL-X 参考几何，标注为参考动作中的时刻）](../assets/img/protocol-fig.jpg)
 
@@ -66,17 +66,17 @@ CPU 即可，在工具包根目录下执行：
 # --data：同一受试者、同一次穿戴的一条或多条 01–17 录制所在目录；身高、臂展单位为米
 PYTHONPATH=src python -m five_tracker_smplx.cli calibrate-subject \
   --data <标定 session 根目录> \
-  --height 1.60 --armspan 1.50 \
+  --height <身高_m> --armspan <臂展_m> \
   --output-dir $WORK/profiles/<受试者>_<日期> \
   --body-model-path models/smplx \
   --vposer-path models/vposer/V02_05 \
-  --motion-cache outputs/calibration_motion_vposer_mano.npz \
+  --motion-cache assets/calibration_motion_vposer_mano.npz \
   --iterations 1100 --optimized-betas 5 --device cpu
 ```
 
 - 动作对齐是自动的：01–11 用五个 tracker 的位置/旋转特征，12–15 再结合手套关节运动能量，16–17 用头和双踝的同步旋转和水平位移。每条记录都会输出 `protocol_alignment.json`（段边界、置信度）。新录制只有检测到真正的转身和行走才会追加 16–17。
 - 自动对齐失败时可以人工标注段边界（`*_manual_alignment.json`），再参与标定。
-- 可选 `--smplx-prior <npz>`：用视频恢复的 SMPL-X betas 作体型先验（例如 GVHMR 结果），只作先验，不做逐帧对齐。
+- 可选 `--smplx-prior <npz>`：用视频恢复的 SMPL-X betas 作体型先验（例如 GVHMR 结果），只作先验，不做逐帧对齐。生产 profile 用了这个先验（权重 0.18）；不加时安装外参基本不变，体型和尺度会有所不同。
 - 拟合原则：五个 tracker 的平移/旋转外参整段只有一份；只释放前几个 beta，身高臂展作强约束（不要拿五个 tracker 自由优化全部 10 个 beta，那是不可观的）；骨盆–颈部相对重力只做软约束。
 
 **产物**：`subject_profile.json`（格式 `five_tracker_smplx_subject_profile_v5_wxyz_source_columns`）+ `subject_calibration.html`（验收页）。验收通过后，把 `subject_profile.json` 复制为 `$WORK/profiles/<batch>.json`，第 7 章的处理就会用它。
@@ -97,6 +97,6 @@ PYTHONPATH=src python -m five_tracker_smplx.cli calibrate-subject \
 
 - 同一套设备换人戴，就是新的 batch，要新标一份 profile。
 - 在采集记录里写清每条 session 是谁录的、属于哪次穿戴。
-- 如果记录缺失、不确定是谁录的：看头部高度（头部 tracker 比脚踝 tracker 高出多少）。站立时这个值因人而异，差几厘米就能区分；把它和各 profile 标定录制里的值比较即可。我们实际遇到过同一套 Wuji 设备由两位采集员轮流佩戴的情况，两人的这个值分别约为 1.26–1.38 m 和 1.40–1.54 m。
+- 如果记录缺失、不确定是谁录的：看头部高度（站立时头部 tracker 比脚踝 tracker 高出多少）。这个值因人而异，差几厘米就能区分，把它和各 profile 标定录制里的值比较即可。
 
 用错 profile 的代价很明显：同一条 session，用错 profile 残差 80 mm，用对的是 62 mm。
