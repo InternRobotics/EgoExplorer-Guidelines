@@ -1,6 +1,6 @@
 # 11. 坐标系约定
 
-[返回目录](../../README.md) · [English](../en/11_coordinate_systems.md)
+[返回目录](../index.md) · [English](../en/11_coordinate_systems.md)
 
 这是全项目唯一的坐标约定，代码实现见 `src/five_tracker_smplx/coordinates.py`。早期曾在三处犯过系统性错误（见 11.9），读写数据前请完整读一遍。
 

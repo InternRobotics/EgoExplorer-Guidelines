@@ -1,6 +1,6 @@
 # 2. 采集主机设置
 
-[返回目录](../../README.md) · [English](../en/02_host_setup.md)
+[返回目录](../index.md) · [English](../en/02_host_setup.md)
 
 采集端代码分两层：`devices/`（各设备驱动）和 `record_ego/`（采集主程序 + 网页控制台）。录制端有两种拓扑，按手套类型区分。
 

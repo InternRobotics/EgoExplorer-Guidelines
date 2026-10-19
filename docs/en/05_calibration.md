@@ -1,6 +1,6 @@
 # 5. Calibration and calibration recordings
 
-[Back to contents](../../README.md#english) · [中文](../zh/05_calibration.md)
+[Back to contents](../index.md#english) · [中文](../zh/05_calibration.md)
 
 ## 5.1 Why a separate calibration
 
@@ -93,7 +93,7 @@ The pipeline picks a profile per session (`profile_for_session()` in `batch_v3_e
 | Profile | File (v3 archive `ckpt/profiles/`) | Used for |
 |---|---|---|
 | Collector A (lab) | `lab_subject_profile.json` | Early Wuji lab tasks |
-| Collector B | `liangfanfan_subject_profile.json` | manus_L1, manus_new, and sessions collector B recorded on the Wuji rig |
+| Collector B | `<collector_B>_subject_profile.json` (named after the collector in the archive) | manus_L1, manus_new, and sessions collector B recorded on the Wuji rig |
 
 **Dataset alone is not enough.** For example, the Wuji household tasks of 0914–0918 (sandwich / clothes / box / bookshelf) were actually recorded by collector B on the Wuji rig. The tell is head height (head tracker above the ankles): about 1.26–1.38 m for collector A and 1.40–1.54 m for collector B. The weekly T-cluster batch classifies sessions with `weekly_profile.py` (threshold 1.32 m ± 0.03 m plus a vote of neighbouring sessions) and writes `profile_override.tsv`, which `profile_for_session()` reads first.
 

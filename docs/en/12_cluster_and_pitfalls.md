@@ -1,6 +1,6 @@
 # 12. Cluster operations and pitfalls
 
-[Back to contents](../../README.md#english) · [中文](../zh/12_cluster_and_pitfalls.md)
+[Back to contents](../index.md#english) · [中文](../zh/12_cluster_and_pitfalls.md)
 
 ## 12.1 H cluster
 

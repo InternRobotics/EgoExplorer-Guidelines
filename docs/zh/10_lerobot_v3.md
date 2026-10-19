@@ -1,8 +1,8 @@
 # 10. 转换为 LeRobot v3.0
 
-[返回目录](../../README.md) · [English](../en/10_lerobot_v3.md)
+[返回目录](../index.md) · [English](../en/10_lerobot_v3.md)
 
-发布数据遵循 [LeRobotDataset v3.0](https://github.com/huggingface/lerobot)。HF 上的 mini release（`InternRobotics/EgoExplorer`，`dataset/lerobot/`，18 个 episode、130,590 帧、10 类任务、全部为 Wuji）就是按本章流程从 `unified_30hz` + 原始录制转出来的。转换脚本目前在 H 集群 `/home/fangkaipeng/workspace/lerobot/`（`build_dataset_new.py`，`converter_version 2.0.0`），整理后并入工具包。
+发布数据遵循 [LeRobotDataset v3.0](https://github.com/huggingface/lerobot)。HF 上的 mini release（`InternRobotics/EgoExplorer`，`dataset/lerobot/`，18 个 episode、130,590 帧、10 类任务、全部为 Wuji）就是按本章流程从 `unified_30hz` + 原始录制转出来的。转换脚本目前在 H 集群数据组的 lerobot 工作目录（`build_dataset_new.py`，`converter_version 2.0.0`），整理后并入工具包。
 
 ## 10.1 目录结构
 

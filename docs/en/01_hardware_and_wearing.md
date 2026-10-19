@@ -1,6 +1,6 @@
 # 1. Hardware and wearing
 
-[Back to contents](../../README.md#english) · [中文](../zh/01_hardware_and_wearing.md)
+[Back to contents](../index.md#english) · [中文](../zh/01_hardware_and_wearing.md)
 
 ## 1.1 Bill of materials
 

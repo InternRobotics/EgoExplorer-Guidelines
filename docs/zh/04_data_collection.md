@@ -1,6 +1,6 @@
 # 4. 如何采集数据
 
-[返回目录](../../README.md) · [English](../en/04_data_collection.md)
+[返回目录](../index.md) · [English](../en/04_data_collection.md)
 
 具体启动命令见第 3 章（待补充）；本章讲一次采集日的流程和规范。
 

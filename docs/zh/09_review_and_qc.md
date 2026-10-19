@@ -1,6 +1,6 @@
 # 9. 质检与三联校验
 
-[返回目录](../../README.md) · [English](../en/09_review_and_qc.md)
+[返回目录](../index.md) · [English](../en/09_review_and_qc.md)
 
 质检分两层：**自动检查**（左右反、漂移、手套配对、残差）在投影前后跑，结果进 gallery；**三联校验**是人工逐条看：同一时刻的视频、SMPL-X mesh、手部与触觉并排显示。
 

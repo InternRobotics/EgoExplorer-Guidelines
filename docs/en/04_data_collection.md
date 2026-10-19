@@ -1,6 +1,6 @@
 # 4. Collecting data
 
-[Back to contents](../../README.md#english) · [中文](../zh/04_data_collection.md)
+[Back to contents](../index.md#english) · [中文](../zh/04_data_collection.md)
 
 Launch commands are in chapter 3 (to be added); this chapter covers the flow and the rules of a capture day.
 

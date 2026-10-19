@@ -1,6 +1,6 @@
 # 7. 原始数据 → SMPL-X
 
-[返回目录](../../README.md) · [English](../en/07_smplx_reconstruction.md)
+[返回目录](../index.md) · [English](../en/07_smplx_reconstruction.md)
 
 本章覆盖身体重建（Complete + Constrain）、手部融合，以及两种用法：**直接用我们的 checkpoint**（7.2–7.5）或**重新训练 proposal 网络**（7.6）。
 
@@ -28,7 +28,7 @@ export PYCPU=/path/to/venv_root/.venv_hcluster/bin/python
 export PYCUDA=/path/to/venv_root/.venv_hcluster_cuda/bin/python
 export CKPT=$PWD/ckpt/avatarposer_five_v3model_20260917_all/model.pt
 export LAB_PROFILE=$PWD/ckpt/profiles/lab_subject_profile.json
-export LFF_PROFILE=$PWD/ckpt/profiles/liangfanfan_subject_profile.json
+export LFF_PROFILE=$PWD/ckpt/profiles/<collector_B>_subject_profile.json
 ln -sfn $PWD/ckpt/models $PROJECT/models          # 代码里 models/ 相对 PROJECT
 ```
 
@@ -133,6 +133,6 @@ PYTHONPATH=src:scripts $PYCUDA -m five_tracker_smplx.cli fuse-manus-batch \
    自然数据来自不同 profile 时不要传 `--mount-reference`（每个文件用自己的挂点）。
 5. **评估**：在留出测试集上用**生产投影**（60 步）跑一遍，按动作窗口看各 tracker 残差和关节角；再拿一条实验室 session 做回归检查，确认老数据没变差。参考结果：重训后测试集平均残差从 35/25/20/30/53 mm（头/左手/右手/左脚/右脚）降到 8/2/2/3/5 mm。
 
-v3 网络就是这样训练出来的：合成数据 = 24 条实验室 VPoser 序列 + 20 条引导姿态 + AMASS（HDM05/CMU/BMLrub，用采集员 B 的 profile），自然数据 = 35 条采集员 B 录制（参考先验标签）+ 3 条实验室教师 + 14 条按类别挑的实验室 session（hard 标签）。完整脚本见 `scripts/worker_liangfanfan_v3model.sh`。
+v3 网络就是这样训练出来的：合成数据 = 24 条实验室 VPoser 序列 + 20 条引导姿态 + AMASS（HDM05/CMU/BMLrub，用采集员 B 的 profile），自然数据 = 35 条采集员 B 录制（参考先验标签）+ 3 条实验室教师 + 14 条按类别挑的实验室 session（hard 标签）。完整脚本见 `scripts/worker_*_v3model.sh`。
 
 **新动作类型必须准备两样东西**：每个动作一个参考姿态，以及动作段/有效窗口的标注。没有它们，投影出的教师标签在多个 IK 分支之间是随机的。

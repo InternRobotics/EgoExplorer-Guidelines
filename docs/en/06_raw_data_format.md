@@ -1,6 +1,6 @@
 # 6. Raw data format
 
-[Back to contents](../../README.md#english) · [中文](../zh/06_raw_data_format.md)
+[Back to contents](../index.md#english) · [中文](../zh/06_raw_data_format.md)
 
 Each session is a folder `session_<date>_<time>_<task>/` with five files:
 

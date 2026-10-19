@@ -1,6 +1,6 @@
 # 11. Coordinate conventions
 
-[Back to contents](../../README.md#english) · [中文](../zh/11_coordinate_systems.md)
+[Back to contents](../index.md#english) · [中文](../zh/11_coordinate_systems.md)
 
 This is the project's single coordinate contract; the code is `src/five_tracker_smplx/coordinates.py`. Three systematic mistakes were made here early on (11.9), so read this chapter in full before reading or writing data.
 

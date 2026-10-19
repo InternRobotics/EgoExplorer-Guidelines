@@ -1,6 +1,6 @@
 # 0. 总览与数据流
 
-[返回目录](../../README.md) · [English](../en/00_overview.md)
+[返回目录](../index.md) · [English](../en/00_overview.md)
 
 ## 0.1 这套系统做什么
 

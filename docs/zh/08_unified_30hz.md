@@ -1,6 +1,6 @@
 # 8. 30 Hz 统一导出
 
-[返回目录](../../README.md) · [English](../en/08_unified_30hz.md)
+[返回目录](../index.md) · [English](../en/08_unified_30hz.md)
 
 ## 8.1 为什么要统一导出
 

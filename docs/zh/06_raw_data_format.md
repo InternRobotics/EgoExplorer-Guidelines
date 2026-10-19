@@ -1,6 +1,6 @@
 # 6. 原始数据格式
 
-[返回目录](../../README.md) · [English](../en/06_raw_data_format.md)
+[返回目录](../index.md) · [English](../en/06_raw_data_format.md)
 
 每条 session 一个目录 `session_<日期>_<时间>_<任务>/`，五个文件：
 

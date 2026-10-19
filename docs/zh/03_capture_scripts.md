@@ -1,6 +1,6 @@
 # 3. 采集脚本
 
-[返回目录](../../README.md) · [English](../en/03_capture_scripts.md)
+[返回目录](../index.md) · [English](../en/03_capture_scripts.md)
 
 > **本章待补充。** 采集脚本（`record_ego/` 采集主程序与 `devices/` 设备驱动、Windows 端 tracker 发送端、启动命令与参数说明）将在整理后补入。
 

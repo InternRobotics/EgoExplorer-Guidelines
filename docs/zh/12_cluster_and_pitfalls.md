@@ -1,6 +1,6 @@
 # 12. 集群运行与常见坑
 
-[返回目录](../../README.md) · [English](../en/12_cluster_and_pitfalls.md)
+[返回目录](../index.md) · [English](../en/12_cluster_and_pitfalls.md)
 
 ## 12.1 H 集群
 

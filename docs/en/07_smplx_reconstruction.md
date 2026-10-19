@@ -1,6 +1,6 @@
 # 7. Raw data → SMPL-X
 
-[Back to contents](../../README.md#english) · [中文](../zh/07_smplx_reconstruction.md)
+[Back to contents](../index.md#english) · [中文](../zh/07_smplx_reconstruction.md)
 
 This chapter covers body reconstruction (Complete + Constrain), hand fusion, and two ways to run it: **with our checkpoint** (7.2–7.5) or **after retraining the proposal network** (7.6).
 
@@ -28,7 +28,7 @@ export PYCPU=/path/to/venv_root/.venv_hcluster/bin/python
 export PYCUDA=/path/to/venv_root/.venv_hcluster_cuda/bin/python
 export CKPT=$PWD/ckpt/avatarposer_five_v3model_20260917_all/model.pt
 export LAB_PROFILE=$PWD/ckpt/profiles/lab_subject_profile.json
-export LFF_PROFILE=$PWD/ckpt/profiles/liangfanfan_subject_profile.json
+export LFF_PROFILE=$PWD/ckpt/profiles/<collector_B>_subject_profile.json
 ln -sfn $PWD/ckpt/models $PROJECT/models          # models/ is relative to PROJECT in the code
 ```
 
@@ -133,6 +133,6 @@ Output `projected/<sid>/smplx_with_manus_hands.npz`: the body is **identical** t
    Do not pass `--mount-reference` when natural files come from different profiles (each file then uses its own mounts).
 5. **Evaluate** on a held-out test set with the **production projection** (60 steps), looking at per-tracker residuals and joint angles per action window; then run one lab session as a regression check. Reference result: after retraining, mean test residuals went from 35/25/20/30/53 mm (head / left hand / right hand / left foot / right foot) to 8/2/2/3/5 mm.
 
-The v3 network was trained this way: synthetic = 24 lab VPoser sequences + 20 guide-pose sequences + AMASS (HDM05/CMU/BMLrub, with collector B's profile); natural = 35 collector-B recordings (reference-prior labels) + 3 lab teachers + 14 lab sessions picked per category (hard labels). The full script is `scripts/worker_liangfanfan_v3model.sh`.
+The v3 network was trained this way: synthetic = 24 lab VPoser sequences + 20 guide-pose sequences + AMASS (HDM05/CMU/BMLrub, with collector B's profile); natural = 35 collector-B recordings (reference-prior labels) + 3 lab teachers + 14 lab sessions picked per category (hard labels). The full script is `scripts/worker_*_v3model.sh`.
 
 **A new motion type needs two things**: a reference pose for each action, and stage / active-window annotation. Without them the projector's teacher label is a coin flip between IK branches.

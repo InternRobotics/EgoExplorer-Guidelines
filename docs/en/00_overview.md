@@ -1,6 +1,6 @@
 # 0. Overview and data flow
 
-[Back to contents](../../README.md#english) · [中文](../zh/00_overview.md)
+[Back to contents](../index.md#english) · [中文](../zh/00_overview.md)
 
 ## 0.1 What the system does
 

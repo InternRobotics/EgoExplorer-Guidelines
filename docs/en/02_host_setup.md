@@ -1,6 +1,6 @@
 # 2. Capture host setup
 
-[Back to contents](../../README.md#english) · [中文](../zh/02_host_setup.md)
+[Back to contents](../index.md#english) · [中文](../zh/02_host_setup.md)
 
 The recorder has two layers: `devices/` (device drivers) and `record_ego/` (capture program + web console). There are two host topologies, one per glove type.
 

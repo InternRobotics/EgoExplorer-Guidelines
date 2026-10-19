@@ -1,6 +1,6 @@
 # 8. Unified 30 Hz export
 
-[Back to contents](../../README.md#english) · [中文](../zh/08_unified_30hz.md)
+[Back to contents](../index.md#english) · [中文](../zh/08_unified_30hz.md)
 
 ## 8.1 Why a unified export
 

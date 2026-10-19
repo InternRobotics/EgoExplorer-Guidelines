@@ -1,6 +1,6 @@
 # 1. 硬件组成与穿戴
 
-[返回目录](../../README.md) · [English](../en/01_hardware_and_wearing.md)
+[返回目录](../index.md) · [English](../en/01_hardware_and_wearing.md)
 
 ## 1.1 物料清单
 

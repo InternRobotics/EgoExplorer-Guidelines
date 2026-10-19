@@ -1,6 +1,6 @@
 # 9. QC and three-pane review
 
-[Back to contents](../../README.md#english) · [中文](../zh/09_review_and_qc.md)
+[Back to contents](../index.md#english) · [中文](../zh/09_review_and_qc.md)
 
 QC has two layers: **automatic checks** (left/right swaps, drift, glove pairing, residuals) run around projection and feed the gallery; the **three-pane review** is a human pass over each session, with video, SMPL-X mesh, and hands and touch at the same instant side by side.
 

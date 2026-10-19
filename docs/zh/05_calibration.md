@@ -1,6 +1,6 @@
 # 5. 标定与标定数据采集
 
-[返回目录](../../README.md) · [English](../en/05_calibration.md)
+[返回目录](../index.md) · [English](../en/05_calibration.md)
 
 ## 5.1 为什么要单独标定
 
@@ -93,7 +93,7 @@ PYTHONPATH=src .venv_hcluster/bin/python -m five_tracker_smplx.cli calibrate-sub
 | profile | 文件（v3 归档 `ckpt/profiles/`） | 适用 |
 |---|---|---|
 | 采集员 A（lab） | `lab_subject_profile.json` | 早期 wuji 实验室任务 |
-| 采集员 B | `liangfanfan_subject_profile.json` | manus_L1、manus_new，以及采集员 B 戴 Wuji 设备录的 session |
+| 采集员 B | `<collector_B>_subject_profile.json`（归档里按采集员姓名命名） | manus_L1、manus_new，以及采集员 B 戴 Wuji 设备录的 session |
 
 **不能只按数据集分。** 例如 wuji 0914–0918 的家务任务（三明治/叠衣服/纸箱/书架）其实是采集员 B 戴 Wuji 设备录的。判据是头部高度（头 tracker 到踝的高度差）：采集员 A 约 1.26–1.38 m，采集员 B 约 1.40–1.54 m。T 集群的周批处理用 `weekly_profile.py` 按 1.32 m ± 0.03 m 阈值加相邻 session 投票自动分类，结果写进 `profile_override.tsv`，`profile_for_session()` 优先读它。
 

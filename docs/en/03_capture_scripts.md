@@ -1,6 +1,6 @@
 # 3. Capture scripts
 
-[Back to contents](../../README.md#english) · [中文](../zh/03_capture_scripts.md)
+[Back to contents](../index.md#english) · [中文](../zh/03_capture_scripts.md)
 
 > **This chapter is a placeholder.** The capture scripts (the `record_ego/` capture program and `devices/` drivers, the Windows tracker sender, launch commands and options) will be added once they are cleaned up.
 
