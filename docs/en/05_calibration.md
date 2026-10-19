@@ -54,15 +54,14 @@ Hold every static pose for at least 3 s; perform dynamic motions slowly, continu
 
 ## 5.4 Running `calibrate-subject`
 
-The CPU environment on the cluster is enough:
+A CPU is enough; run from the toolkit root:
 
 ```bash
-cd ~/workspace/five_tracker_smplx
 # --data: folder with one or more 01–17 recordings of the same subject and the same donning; height and arm span in metres
-PYTHONPATH=src .venv_hcluster/bin/python -m five_tracker_smplx.cli calibrate-subject \
+PYTHONPATH=src python -m five_tracker_smplx.cli calibrate-subject \
   --data <calibration session root> \
   --height 1.60 --armspan 1.50 \
-  --output-dir outputs/subject_calibration_<subject>_<date> \
+  --output-dir $WORK/profiles/<subject>_<date> \
   --body-model-path models/smplx \
   --vposer-path models/vposer/V02_05 \
   --motion-cache outputs/calibration_motion_vposer_mano.npz \
@@ -88,13 +87,10 @@ Check in `subject_calibration.html`:
 
 ## 5.6 Which profile a task recording uses
 
-The pipeline picks a profile per session (`profile_for_session()` in `batch_v3_env.sh`). There are two today:
+**A profile belongs to a subject and a donning, not to a rig or a task.** Chapter 7 organises recordings into batches: a batch holds recordings of one subject in one donning, and the whole batch uses the profile calibrated for that donning.
 
-| Profile | File (v3 archive `ckpt/profiles/`) | Used for |
-|---|---|---|
-| Collector A (lab) | `lab_subject_profile.json` | Early Wuji lab tasks |
-| Collector B | `<collector_B>_subject_profile.json` (named after the collector in the archive) | manus_L1, manus_new, and sessions collector B recorded on the Wuji rig |
+- The same rig worn by someone else is a new batch and needs a new profile.
+- Record in the capture log who recorded each session and which donning it belongs to.
+- If the log is missing and you are unsure who recorded a session, look at head height (how far the head tracker sits above the ankle trackers). Standing, it differs between people by enough centimetres to tell them apart; compare it with the value in each profile's calibration recordings. We have had one Wuji rig worn in turn by two collectors, at about 1.26–1.38 m and 1.40–1.54 m respectively.
 
-**Dataset alone is not enough.** For example, the Wuji household tasks of 0914–0918 (sandwich / clothes / box / bookshelf) were actually recorded by collector B on the Wuji rig. The tell is head height (head tracker above the ankles): about 1.26–1.38 m for collector A and 1.40–1.54 m for collector B. The weekly T-cluster batch classifies sessions with `weekly_profile.py` (threshold 1.32 m ± 0.03 m plus a vote of neighbouring sessions) and writes `profile_override.tsv`, which `profile_for_session()` reads first.
-
-A wrong profile costs a lot (e.g. one sandwich session: 80 mm RMS with the lab profile, 62 mm with the right one). **Calibrate a new profile for every new subject, and record who captured each session.**
+A wrong profile costs a lot: one session went from 62 mm RMS with the right profile to 80 mm with the wrong one.

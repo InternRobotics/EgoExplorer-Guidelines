@@ -61,7 +61,7 @@ nav:
       - 9 质检与三联校验: zh/09_review_and_qc.md
       - 10 转换为 LeRobot v3.0: zh/10_lerobot_v3.md
       - 11 坐标系约定: zh/11_coordinate_systems.md
-      - 12 集群运行与常见坑: zh/12_cluster_and_pitfalls.md
+      - 12 运行环境与常见坑: zh/12_environment_and_pitfalls.md
   - English:
       - 0 Overview: en/00_overview.md
       - 1 Hardware and wearing: en/01_hardware_and_wearing.md
@@ -75,4 +75,4 @@ nav:
       - 9 QC and review: en/09_review_and_qc.md
       - 10 LeRobot v3.0: en/10_lerobot_v3.md
       - 11 Coordinate conventions: en/11_coordinate_systems.md
-      - 12 Cluster and pitfalls: en/12_cluster_and_pitfalls.md
+      - 12 Environment and pitfalls: en/12_environment_and_pitfalls.md

@@ -2,7 +2,7 @@
 
 [Back to contents](../index.md#english) · [中文](../zh/10_lerobot_v3.md)
 
-Released data follows [LeRobotDataset v3.0](https://github.com/huggingface/lerobot). The mini release on HF (`InternRobotics/EgoExplorer`, `dataset/lerobot/`: 18 episodes, 130,590 frames, 10 task templates, all Wuji) was converted from `unified_30hz` + the raw recordings following this chapter. The converter currently lives in the data team's lerobot workspace on the H cluster (`build_dataset_new.py`, `converter_version 2.0.0`) and will be folded into the toolkit.
+Released data follows [LeRobotDataset v3.0](https://github.com/huggingface/lerobot). The mini release on HF (`InternRobotics/EgoExplorer`, `dataset/lerobot/`: 18 episodes, 130,590 frames, 10 task templates, all Wuji) was converted from `unified_30hz` + the raw recordings following this chapter. The converter (`build_dataset_new.py`, `converter_version 2.0.0`) will be released with the toolkit.
 
 ## 10.1 Layout
 

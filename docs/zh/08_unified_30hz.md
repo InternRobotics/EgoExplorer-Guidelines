@@ -11,16 +11,17 @@
 ## 8.2 运行
 
 ```bash
-bash scripts/run_batch_v3.sh export
-# 等价于：
-$PYCPU scripts/export_unified_30hz.py --projected-root $BATCH_ROOT/projected \
-  --output-root $BATCH_ROOT/unified_30hz --rate 30 --skip-existing
+python scripts/export_unified_30hz.py --projected-root $WORK/out/projected \
+  --output-root $WORK/out/unified_30hz --rate 30 --skip-existing
+# 投影失败的 session（只导出视频和触觉）：
+python scripts/export_unified_nobody.py --sync-root $WORK/input/ego_data_sync \
+  --batch-root $WORK/out --output-root $WORK/out/unified_30hz --skip-existing
 ```
 
 - 可选 `--session <sid>`（可重复）、`--keep-raw-tactile`（额外保存 744 维原始触觉的窗口峰值，每手每条约 17 MB）。
 - 优先读融合后的 `smplx_with_manus_hands.npz`，没有手部融合时退回 `smplx_profile_driven.npz`（手部为中性零姿态占位）。
 - 投影失败的 session 用 `export_unified_nobody.py` 导出视频和触觉（无身体），并把失败原因写进导出，供审阅页说明。
-- Wuji 触觉需要 `~/workspace/tactile_work/`（`wuji_correct.py`、`wuji_layout.py`、`health/health_db.npz`）。缺了它只能导出 L0 原始值，并在报告里注明"L0 only"。
+- Wuji 触觉需要触觉处理模块（`wuji_correct.py`、`wuji_layout.py`）和手套健康表 `health/health_db.npz`，导出脚本默认在 `~/workspace/tactile_work/` 下找它们。缺了它只能导出 L0 原始值，并在报告里注明"L0 only"。
 
 ## 8.3 重采样规则
 

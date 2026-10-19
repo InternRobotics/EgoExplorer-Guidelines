@@ -48,7 +48,7 @@ Video and gloves use the Linux wall clock. Tracker samples are stamped with the 
 2. **Encoding**: recordings use the system ffmpeg's libx264 (`--video-codec h264 --crf 20 --h264-preset ultrafast`). The ffmpeg bundled with opencv-python often lacks libx264 and silently falls back to mp4v, so install the system ffmpeg. Video PTS are set from each frame's grab time (`timestamp_mode = capture-vfr`), so encoder speed never changes the timeline.
 3. **Wuji SDK**: install `wuji_sdk`. At startup the recorder imports the calibration bundle (default `wuji_calibration/calibration_bundle.zip`), scans and connects every glove and subscribes to `tactile` + `hand_skeleton` (derived zones, joint angles, EMF and point clouds are off by default to keep video capture real-time).
 4. **Network**: the Windows sender must reach TCP 8766 on the Linux PC.
-5. **Upload**: configure an rclone remote (e.g. `eailab-hdd2:`); the recorder uploads manually or when a storage threshold is hit via `--rclone-remote` (chapter 4).
+5. **Upload**: optionally configure an rclone remote storage; the recorder uploads manually or when a storage threshold is hit via `--rclone-remote` (chapter 4).
 
 ## 2.4 Windows capture PC for the MANUS rig
 

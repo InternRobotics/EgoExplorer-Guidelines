@@ -48,7 +48,7 @@ GoPro ──HDMI──► 采集卡 ──USB──► Linux 采集程序（V4L2
 2. **编码**：录制用系统 ffmpeg 的 libx264（`--video-codec h264 --crf 20 --h264-preset ultrafast`）。opencv-python 自带的 ffmpeg 往往没有 libx264，会静默退回 mp4v，所以要装系统 ffmpeg。视频按逐帧抓取时刻写 PTS（`timestamp_mode = capture-vfr`），编码快慢不影响时间轴。
 3. **Wuji SDK**：安装 `wuji_sdk`；采集程序启动时导入标定 bundle（默认 `wuji_calibration/calibration_bundle.zip`），扫描并连接全部手套，订阅 `tactile` + `hand_skeleton` 两路（为保证视频实时抓帧，默认不订阅派生分区、关节角、EMF 和点云）。
 4. **网络**：Windows 发送端能访问 Linux 的 TCP 8766。
-5. **上传**：配置 rclone 远端（例如 `eailab-hdd2:`），采集程序可用 `--rclone-remote` 手动或按容量阈值自动上传（见第 4 章）。
+5. **上传**：（可选）配置一个 rclone 远端存储，采集程序可用 `--rclone-remote` 手动或按容量阈值自动上传（见第 4 章）。
 
 ## 2.4 MANUS 方案的 Windows 采集机
 

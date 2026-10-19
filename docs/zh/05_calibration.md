@@ -54,15 +54,14 @@
 
 ## 5.4 运行标定（`calibrate-subject`）
 
-在集群上用 CPU 环境即可：
+CPU 即可，在工具包根目录下执行：
 
 ```bash
-cd ~/workspace/five_tracker_smplx
 # --data：同一受试者、同一次穿戴的一条或多条 01–17 录制所在目录；身高、臂展单位为米
-PYTHONPATH=src .venv_hcluster/bin/python -m five_tracker_smplx.cli calibrate-subject \
+PYTHONPATH=src python -m five_tracker_smplx.cli calibrate-subject \
   --data <标定 session 根目录> \
   --height 1.60 --armspan 1.50 \
-  --output-dir outputs/subject_calibration_<受试者>_<日期> \
+  --output-dir $WORK/profiles/<受试者>_<日期> \
   --body-model-path models/smplx \
   --vposer-path models/vposer/V02_05 \
   --motion-cache outputs/calibration_motion_vposer_mano.npz \
@@ -88,13 +87,10 @@ PYTHONPATH=src .venv_hcluster/bin/python -m five_tracker_smplx.cli calibrate-sub
 
 ## 5.6 一条任务录制用哪份 profile
 
-管线按 session 选 profile（`batch_v3_env.sh` 的 `profile_for_session()`），现有两份：
+**profile 跟着"受试者 + 这次穿戴"走，不跟着设备或任务走。** 第 7 章把录制按 batch 组织：一个 batch 只放同一位受试者、同一次穿戴的录制，整个 batch 用这次穿戴标出来的那份 profile。
 
-| profile | 文件（v3 归档 `ckpt/profiles/`） | 适用 |
-|---|---|---|
-| 采集员 A（lab） | `lab_subject_profile.json` | 早期 wuji 实验室任务 |
-| 采集员 B | `<collector_B>_subject_profile.json`（归档里按采集员姓名命名） | manus_L1、manus_new，以及采集员 B 戴 Wuji 设备录的 session |
+- 同一套设备换人戴，就是新的 batch，要新标一份 profile。
+- 在采集记录里写清每条 session 是谁录的、属于哪次穿戴。
+- 如果记录缺失、不确定是谁录的：看头部高度（头部 tracker 比脚踝 tracker 高出多少）。站立时这个值因人而异，差几厘米就能区分；把它和各 profile 标定录制里的值比较即可。我们实际遇到过同一套 Wuji 设备由两位采集员轮流佩戴的情况，两人的这个值分别约为 1.26–1.38 m 和 1.40–1.54 m。
 
-**不能只按数据集分。** 例如 wuji 0914–0918 的家务任务（三明治/叠衣服/纸箱/书架）其实是采集员 B 戴 Wuji 设备录的。判据是头部高度（头 tracker 到踝的高度差）：采集员 A 约 1.26–1.38 m，采集员 B 约 1.40–1.54 m。T 集群的周批处理用 `weekly_profile.py` 按 1.32 m ± 0.03 m 阈值加相邻 session 投票自动分类，结果写进 `profile_override.tsv`，`profile_for_session()` 优先读它。
-
-用错 profile 的代价很明显（例：同一条三明治 session，lab profile 80 mm RMS，正确的 profile 62 mm）。**新受试者一定要新标一份 profile，并在采集记录里写清每条 session 是谁录的。**
+用错 profile 的代价很明显：同一条 session，用错 profile 残差 80 mm，用对的是 62 mm。

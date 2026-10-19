@@ -11,16 +11,17 @@ No two streams in a raw recording share a rate: trackers at 15 or 65 Hz, gloves 
 ## 8.2 Running it
 
 ```bash
-bash scripts/run_batch_v3.sh export
-# equivalent to:
-$PYCPU scripts/export_unified_30hz.py --projected-root $BATCH_ROOT/projected \
-  --output-root $BATCH_ROOT/unified_30hz --rate 30 --skip-existing
+python scripts/export_unified_30hz.py --projected-root $WORK/out/projected \
+  --output-root $WORK/out/unified_30hz --rate 30 --skip-existing
+# sessions whose projection failed (video and touch only):
+python scripts/export_unified_nobody.py --sync-root $WORK/input/ego_data_sync \
+  --batch-root $WORK/out --output-root $WORK/out/unified_30hz --skip-existing
 ```
 
 - Optional `--session <sid>` (repeatable) and `--keep-raw-tactile` (also store the window maximum of the 744 raw taxels, about 17 MB per hand per session).
 - Reads the fused `smplx_with_manus_hands.npz` when present, otherwise `smplx_profile_driven.npz` (hands as a neutral zero-pose placeholder).
 - Sessions whose projection failed are exported with `export_unified_nobody.py` (video and touch, no body), with the failure reason stored so the review page can show it.
-- Wuji touch needs `~/workspace/tactile_work/` (`wuji_correct.py`, `wuji_layout.py`, `health/health_db.npz`). Without it only L0 raw values are exported and the report says "L0 only".
+- Wuji touch needs the touch-processing modules (`wuji_correct.py`, `wuji_layout.py`) and the glove health table `health/health_db.npz`; the exporter looks for them under `~/workspace/tactile_work/` by default. Without it only L0 raw values are exported and the report says "L0 only".
 
 ## 8.3 Resampling rules
 

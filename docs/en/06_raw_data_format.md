@@ -12,7 +12,7 @@ Each session is a folder `session_<date>_<time>_<task>/` with five files:
 <session>.session.json   device and clock metadata
 ```
 
-The cluster copy (`/data/ego_data_sync/`) **has no mp4** (too large; review pages fetch a 360p copy from the bucket when needed).
+Reconstruction only reads the tracker, glove and video-timestamp files; the mp4 is only needed for review pages and the LeRobot conversion.
 
 All timestamps are in **microseconds**; `t_host_us` is the host wall clock (`time.time()`) and is the shared master timeline.
 

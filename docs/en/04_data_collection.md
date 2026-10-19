@@ -34,7 +34,7 @@ Wear (ch. 1) → host checks (2.6) → record the 01–17 calibration (ch. 5) �
 - Session name: `session_<YYYYMMDD>_<HHMMSS>_<task>`, e.g. `session_20260901_154755_物料称量`.
 - Recovery recordings (responses to interruptions or failed attempts) append `_恢复` to the task name, e.g. `session_20260901_164121_过柱_恢复`. They are recorded deliberately so the data covers how people correct course.
 - One folder per session with five files (format in chapter 6).
-- The bucket has one folder per dataset: `eailab-hdd2:/eailab/ego_data/<dataset>/…` (e.g. `wuji`, `manus_new`, `manus_L1`). **Folder depth differs between datasets**; always scan recursively downstream.
+- For processing, group recordings into batches: one folder per subject and donning (7.3).
 
 ## 4.3 Recording rules
 

@@ -12,7 +12,7 @@
 <session>.session.json   设备与时钟元信息
 ```
 
-集群同步副本（`/data/ego_data_sync/`）**不含 mp4**（太大，审阅页要用时单独从桶里拉 360p 副本）。
+重建只读 tracker、手套和视频时间戳；mp4 只在生成审阅页和转换 LeRobot 时用到。
 
 所有时间戳单位为**微秒**；`t_host_us` 是主机墙钟（`time.time()`），是统一的主时间轴。
 
