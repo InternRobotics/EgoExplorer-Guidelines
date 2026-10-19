@@ -41,6 +41,10 @@ Released data follows [LeRobotDataset v3.0](https://github.com/huggingface/lerob
 
 The full version described in the paper and the HF card adds: SMPL-X body (world pelvis position + root orientation + 21 joint axis-angles), hands 2×45, step annotations `annotation.*`, and per-stream validity masks and provenance fields.
 
+![Step annotations aligned to the egocentric timeline](../assets/img/text_annotations.jpg)
+
+*Every recording carries step-level annotations: step ID, description, interval bounds, skill, object roles and outcome.*
+
 ## 10.3 Conversion steps
 
 1. **Select episodes.** Candidates = status ok in the quality table ∩ has step annotations ∩ has SMPL-X ∩ (if touch is released) touch on both hands. Rank by residual, e.g. p50 ≈ 3–4 mm, p95 < 8 mm, mean rotation error < 7°. Heads and tails may be trimmed (record `trim_head_s` / `trim_tail_s` in the metadata).

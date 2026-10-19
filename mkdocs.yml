@@ -52,7 +52,7 @@ nav:
       - 0 总览与数据流: zh/00_overview.md
       - 1 硬件组成与穿戴: zh/01_hardware_and_wearing.md
       - 2 采集主机设置: zh/02_host_setup.md
-      - 3 采集脚本（待补充）: zh/03_capture_scripts.md
+      - 3 采集脚本: zh/03_capture_scripts.md
       - 4 如何采集数据: zh/04_data_collection.md
       - 5 标定与标定数据采集: zh/05_calibration.md
       - 6 原始数据格式: zh/06_raw_data_format.md
@@ -66,7 +66,7 @@ nav:
       - 0 Overview: en/00_overview.md
       - 1 Hardware and wearing: en/01_hardware_and_wearing.md
       - 2 Capture host setup: en/02_host_setup.md
-      - 3 Capture scripts (TBD): en/03_capture_scripts.md
+      - 3 Capture scripts: en/03_capture_scripts.md
       - 4 Collecting data: en/04_data_collection.md
       - 5 Calibration: en/05_calibration.md
       - 6 Raw data format: en/06_raw_data_format.md

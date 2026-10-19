@@ -13,9 +13,9 @@
 ```bash
 python scripts/export_unified_30hz.py --projected-root $WORK/out/projected \
   --output-root $WORK/out/unified_30hz --rate 30 --skip-existing
-# 投影失败的 session（只导出视频和触觉）：
+# 投影失败的 session（只导出视频和触觉）。必须写到单独的目录：这个脚本会删除输出目录里已投影 session 的导出
 python scripts/export_unified_nobody.py --sync-root $WORK/input/ego_data_sync \
-  --batch-root $WORK/out --output-root $WORK/out/unified_30hz --skip-existing
+  --batch-root $WORK/out --output-root $WORK/out/unified_30hz_nobody --skip-existing
 ```
 
 - 可选 `--session <sid>`（可重复）、`--keep-raw-tactile`（额外保存 744 维原始触觉的窗口峰值，每手每条约 17 MB）。

@@ -12,7 +12,7 @@
 
 ```bash
 G=$WORK/out/gallery; mkdir -p $G
-B=<batch>; PROFILE=$WORK/profiles/<subject>.json
+B=<batch>; PROFILE=$WORK/profiles/$B.json
 python scripts/check_tracker_lr.py      --sync-root $WORK/ego_data_sync --datasets $B --profile $PROFILE --output $G/tracker_lr.$B.json
 python scripts/check_startup_stance.py  --sync-root $WORK/ego_data_sync --datasets $B --profile $PROFILE --output $G/startup_stance.$B.json
 python scripts/check_glove_sync.py      --sync-root $WORK/ego_data_sync --datasets $B --output $G/glove_sync.$B.json
@@ -60,7 +60,7 @@ python scripts/fix_glove_lr.py   --report $G/glove_sync.json --tracker-report $G
 
 ```bash
 R=$WORK/out/review; mkdir -p $R
-for npz in $WORK/out/unified_30hz/*.npz; do
+for npz in $WORK/out/unified_30hz/*.npz $WORK/out/unified_30hz_nobody/*.npz; do
   name=$(basename "$npz" .npz)
   slug=$(printf '%s' "$name" | sed -E 's/^(session_[0-9]+_[0-9]+).*/\1/')
   mp4=$(ls $WORK/ego_data_sync/*/"$name"/"$name".mp4 2>/dev/null | head -1)
@@ -80,6 +80,10 @@ done
 1. **第一视角视频**（360p 副本）
 2. **SMPL-X 全身 mesh**（10,475 顶点/帧；默认均匀抽取不超过 300 帧，顶点流相对上一帧做差分并量化，内嵌在页面里）+ 五个 tracker
 3. **双手与触觉**：手部骨架和 17 区触觉，接触区高亮并列出区名
+
+![一条 Wuji 录制的三联校验页](../assets/img/review_page.jpg)
+
+*用本工具包在一台机器上跑出来的真实结果（同一条物料称量录制）：左上 GoPro 视频，右上带手指的 SMPL-X mesh，下方左右手 17 区接触（黄色 = 接触）和 17 区 × 时间的接触条带。顶部写明了触觉阈值和抽帧情况。*
 
 投影失败的 session 也可以生成页面（用 `export_unified_nobody.py` 的导出：视频 + 触觉，mesh 栏写明失败原因），方便判断失败原因。
 

@@ -13,9 +13,10 @@ No two streams in a raw recording share a rate: trackers at 15 or 65 Hz, gloves 
 ```bash
 python scripts/export_unified_30hz.py --projected-root $WORK/out/projected \
   --output-root $WORK/out/unified_30hz --rate 30 --skip-existing
-# sessions whose projection failed (video and touch only):
+# sessions whose projection failed (video and touch only). Keep them in their own folder: this script
+# deletes the export of any projected session found in its output root
 python scripts/export_unified_nobody.py --sync-root $WORK/input/ego_data_sync \
-  --batch-root $WORK/out --output-root $WORK/out/unified_30hz --skip-existing
+  --batch-root $WORK/out --output-root $WORK/out/unified_30hz_nobody --skip-existing
 ```
 
 - Optional `--session <sid>` (repeatable) and `--keep-raw-tactile` (also store the window maximum of the 744 raw taxels, about 17 MB per hand per session).

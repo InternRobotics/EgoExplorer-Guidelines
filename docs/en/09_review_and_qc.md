@@ -12,7 +12,7 @@ Run these **before** projection (they only read the raw recordings). `check_trac
 
 ```bash
 G=$WORK/out/gallery; mkdir -p $G
-B=<batch>; PROFILE=$WORK/profiles/<subject>.json
+B=<batch>; PROFILE=$WORK/profiles/$B.json
 python scripts/check_tracker_lr.py      --sync-root $WORK/ego_data_sync --datasets $B --profile $PROFILE --output $G/tracker_lr.$B.json
 python scripts/check_startup_stance.py  --sync-root $WORK/ego_data_sync --datasets $B --profile $PROFILE --output $G/startup_stance.$B.json
 python scripts/check_glove_sync.py      --sync-root $WORK/ego_data_sync --datasets $B --output $G/glove_sync.$B.json
@@ -60,7 +60,7 @@ Each session gets a self-contained `<slug>.review.html` (`slug` = `session_<date
 
 ```bash
 R=$WORK/out/review; mkdir -p $R
-for npz in $WORK/out/unified_30hz/*.npz; do
+for npz in $WORK/out/unified_30hz/*.npz $WORK/out/unified_30hz_nobody/*.npz; do
   name=$(basename "$npz" .npz)
   slug=$(printf '%s' "$name" | sed -E 's/^(session_[0-9]+_[0-9]+).*/\1/')
   mp4=$(ls $WORK/ego_data_sync/*/"$name"/"$name".mp4 2>/dev/null | head -1)
@@ -80,6 +80,10 @@ The page has three panes, all from the same 30 Hz export, so the video frame, me
 1. **Egocentric video** (the 360p copy)
 2. **Whole-body SMPL-X mesh** (10,475 vertices per frame; by default at most 300 uniformly subsampled frames, vertex stream delta-coded against the previous frame and quantised, embedded in the page) + the five trackers
 3. **Hands and touch**: hand skeletons and the 17-region touch map, with contacting regions highlighted and named
+
+![Three-pane review page of one Wuji recording](../assets/img/review_page.jpg)
+
+*A real result produced with this toolkit on one machine (the same weighing recording): GoPro video top left, SMPL-X mesh with fingers top right, and below the 17-region contact maps of both hands (yellow = contact) with a 17-region × time contact strip. The header states the touch thresholds and the frame subsampling.*
 
 Sessions whose projection failed can still get a page (from the `export_unified_nobody.py` export: video + touch, with the failure reason in the mesh pane) so the failure can be diagnosed.
 

@@ -4,14 +4,14 @@
 
 EgoExplorer 采集与重建全流程指南：从硬件、穿戴、主机设置、采集、标定，到原始数据 → SMPL-X → 30 Hz 统一导出 → 三联校验 → LeRobot v3.0。内容依据实际使用的代码和配置整理，参数都是生产批次（v3）真正在用的取值，整条处理管线在一台机器上就能跑完。
 
-> 状态：草稿。采集脚本一章暂时留空，待补充。
+> 状态：草稿。采购清单和 3D 打印件待补充。代码：[InternRobotics/egoexplorer-toolkit](https://github.com/InternRobotics/egoexplorer-toolkit)。
 
 | # | 中文 | English |
 |---|---|---|
 | 0 | [总览与数据流](zh/00_overview.md) | [Overview and data flow](en/00_overview.md) |
 | 1 | [硬件组成与穿戴](zh/01_hardware_and_wearing.md) | [Hardware and wearing](en/01_hardware_and_wearing.md) |
 | 2 | [采集主机设置](zh/02_host_setup.md) | [Capture host setup](en/02_host_setup.md) |
-| 3 | [采集脚本（待补充）](zh/03_capture_scripts.md) | [Capture scripts (TBD)](en/03_capture_scripts.md) |
+| 3 | [采集脚本](zh/03_capture_scripts.md) | [Capture scripts](en/03_capture_scripts.md) |
 | 4 | [如何采集数据](zh/04_data_collection.md) | [Collecting data](en/04_data_collection.md) |
 | 5 | [标定与标定数据采集](zh/05_calibration.md) | [Calibration and calibration recordings](en/05_calibration.md) |
 | 6 | [原始数据格式](zh/06_raw_data_format.md) | [Raw data format](en/06_raw_data_format.md) |
@@ -39,7 +39,7 @@ EgoExplorer 采集与重建全流程指南：从硬件、穿戴、主机设置�
 
 ## English
 
-An end-to-end guide to the EgoExplorer capture and reconstruction workflow: hardware, wearing, host setup, capture, calibration, then raw data → SMPL-X → unified 30 Hz export → three-pane review → LeRobot v3.0. Everything is taken from the code and configuration of our production (v3) batch, and the whole processing pipeline runs on one machine. The capture-script chapter is a placeholder for now. Use the table above or the navigation on the left.
+An end-to-end guide to the EgoExplorer capture and reconstruction workflow: hardware, wearing, host setup, capture, calibration, then raw data → SMPL-X → unified 30 Hz export → three-pane review → LeRobot v3.0. Everything is taken from the code and configuration of our production (v3) batch, and the whole processing pipeline runs on one machine. The bill of materials and 3D-printed parts are still to be added. Use the table above or the navigation on the left.
 
 ```text
 Wear     5× VIVE Ultimate Tracker + gloves (MANUS / Wuji) + GoPro HERO13 (on the head, rigidly coupled to the head tracker)

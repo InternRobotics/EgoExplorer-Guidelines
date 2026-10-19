@@ -9,15 +9,21 @@
 | | 信号 | 设备 | 原生速率（实测） |
 |---|---|---|---|
 | A | 第一视角视频 | GoPro HERO13 Black + Media Mod，经 3D 打印转接件与头部 tracker 刚性相连 | Wuji 方案实测约 30 Hz；MANUS 方案约 52–60 Hz |
-| B | 全身运动 | 5 × VIVE Ultimate Tracker（头、双腕、双踝外侧），inside-out，无基站 | Wuji 方案约 65 Hz；MANUS 方案约 15 Hz（见第 2.2 节） |
+| B | 全身运动 | 5 × VIVE Ultimate Tracker（头、双腕、双踝外侧），inside-out，无基站 | Wuji 方案约 65 Hz；MANUS 方案默认 90 Hz（旧录制约 15 Hz，见第 2.2 节） |
 | C | 手指关节 | MANUS Metagloves Pro **或** Wuji 手套 | MANUS 约 22 Hz（旧 25 点）/ 约 220 Hz（新 21 点）；Wuji 约 120 Hz |
 | D | 触觉 | Wuji 手套，每手 24×31 = 744 个 taxel | 约 120 Hz |
 
 然后用 **C³（Calibrate–Complete–Constrain）** 管线把稀疏的 5 个 tracker 变成完整、带尺度、物理上合理的 SMPL-X 人体，再把手套的手指姿态和触觉融合到同一个身体、同一条时间轴上。
 
+<video src="../../assets/video/session_weighing.mp4" controls muted loop playsinline width="100%"></video>
+
+*一条录制（物料称量，5 倍速）：第一视角视频、全身运动、手部骨架与触觉、步骤描述，都在同一条时间轴上。*
+
 **整条处理管线可以在一台机器上跑完**（推荐带一块 NVIDIA GPU），不依赖集群。
 
 ## 0.2 数据流
+
+![C³ 管线：采集、标定、补全、约束，再到手部融合与导出](../assets/img/pipeline-fig.jpg)
 
 ```mermaid
 flowchart TD
@@ -37,13 +43,16 @@ flowchart TD
 
 ## 0.3 工具包里有什么
 
+代码仓库：[InternRobotics/egoexplorer-toolkit](https://github.com/InternRobotics/egoexplorer-toolkit)。
+
 | 部分 | 内容 |
 |---|---|
-| `record_ego/` + `devices/` | 采集程序与设备驱动（第 3 章，待补充） |
+| `capture/` | 采集程序：Wuji / MANUS 两种方案、Windows tracker 发送端、会话回看（第 2–4 章） |
 | `src/five_tracker_smplx/` | 库：数据读取、坐标约定、标定、SMPL-X 拟合、手部映射、viewer |
 | `scripts/` | 各阶段脚本：投影、检查、修正、导出、审阅页、gallery、训练 |
 | `ckpt/` | v3 proposal 网络 checkpoint |
 | `models/` | SMPL-X、VPoser（需从官网下载，见第 7.2 节） |
+| `hardware/` | 采购清单与 3D 打印件（待补充） |
 
 ## 0.4 各章怎么读
 

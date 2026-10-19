@@ -24,6 +24,12 @@
 
 静态姿态每个至少稳定 3 秒；动态动作慢速、连续、幅度可控。数采员看 3D 参考动画照做：`outputs/calibration_protocol_reference.html`（可旋转、缩放、逐帧查看），或三视角 MP4。**以页面上标的"受试者左/右"为准，不要把屏幕左侧当成受试者左侧。**
 
+![01–17 标定动作参考（SMPL-X 参考几何，标注为参考动作中的时刻）](../assets/img/protocol-fig.jpg)
+
+<video src="../../assets/video/calibration_protocol_reference.mp4" controls muted loop playsinline width="100%"></video>
+
+*数采员照着这段三视角参考视频做（正面、左侧、右侧）。仓库里同一个文件在 `assets/calibration_protocol_reference.mp4`。*
+
 | 段 | 时长 | 动作 | 用途 |
 |---|---:|---|---|
 | 01 | 7 s | 自然站立，脚尖向前，双臂自然下垂，目视前方 | 地面、身高、初始根节点 |
@@ -73,7 +79,7 @@ PYTHONPATH=src python -m five_tracker_smplx.cli calibrate-subject \
 - 可选 `--smplx-prior <npz>`：用视频恢复的 SMPL-X betas 作体型先验（例如 GVHMR 结果），只作先验，不做逐帧对齐。
 - 拟合原则：五个 tracker 的平移/旋转外参整段只有一份；只释放前几个 beta，身高臂展作强约束（不要拿五个 tracker 自由优化全部 10 个 beta，那是不可观的）；骨盆–颈部相对重力只做软约束。
 
-**产物**：`subject_profile.json`（格式 `five_tracker_smplx_subject_profile_v5_wxyz_source_columns`）+ `subject_calibration.html`（验收页）。
+**产物**：`subject_profile.json`（格式 `five_tracker_smplx_subject_profile_v5_wxyz_source_columns`）+ `subject_calibration.html`（验收页）。验收通过后，把 `subject_profile.json` 复制为 `$WORK/profiles/<batch>.json`，第 7 章的处理就会用它。
 
 ## 5.5 验收
 

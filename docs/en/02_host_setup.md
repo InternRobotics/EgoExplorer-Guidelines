@@ -2,70 +2,107 @@
 
 [Back to contents](../index.md#english) · [中文](../zh/02_host_setup.md)
 
-The recorder has two layers: `devices/` (device drivers) and `record_ego/` (capture program + web console). There are two host topologies, one per glove type.
+The capture code is in `capture/` of [egoexplorer-toolkit](https://github.com/InternRobotics/egoexplorer-toolkit). One code base supports both **Wuji** and **MANUS** gloves, with entry points `record_ego_wuji.py` and `record_ego_manus.py`.
 
 ## 2.1 Two topologies
 
-### MANUS rig: one Windows host
-
-```text
-VIVE Ultimate Tracker ×5 ──dongle──► Windows: VIVE Hub + SteamVR (headless) ──OpenXR──► recorder (same PC)
-MANUS gloves ──► Windows: MANUS Core + modified SDKMinimalClient ──UDP:9000──► recorder (same PC)
-GoPro ──HDMI──► capture card ──USB──► recorder (same PC, DirectShow)
-```
-
-All three streams are timestamped on **one machine and one wall clock** (`time.time()`), so they are aligned as written.
-
 ### Wuji rig: Linux capture PC + Windows tracker PC
 
-```text
-VIVE Ultimate Tracker ×5 ──► Windows: VIVE Hub + SteamVR + tracker sender ──TCP:8766──► Linux recorder
-Wuji gloves ×2 ──USB/SDK──► Linux: wuji_sdk ──► Linux recorder
-GoPro ──HDMI──► capture card ──USB──► Linux recorder (V4L2)
+```mermaid
+flowchart LR
+    W[Wuji gloves ×2] -- Ethernet / USB NICs --> L
+    G[GoPro + Media Mod] -- HDMI → capture card --> L
+    T[VIVE Ultimate Tracker ×5] --> WIN[Windows: SteamVR / OpenXR<br/>tracker_sender_windows.py]
+    WIN -- TCP 8766 · poses + Windows wall clock --> L[Linux capture PC<br/>record_ego_wuji.py]
+    L --> F[session folder<br/>mp4 / video.npz / npz / tracker.npz / session.json]
 ```
 
-Video and gloves use the Linux wall clock. Tracker samples are stamped with the Windows wall clock first; the receiver estimates the clock offset between the two machines with NTP-style round trips and converts to the Linux wall clock (re-estimated per session). Measured in-session drift is 4.2 ms median with 0.39 ms fit jitter, which is good enough.
+- Linux is the only capture coordinator. Video and gloves are stamped with the Linux wall clock directly.
+- Windows sends every pose with its own wall-clock time. Every 2 s the two sides take an NTP-style four-timestamp sample; Linux estimates the `Windows − Linux` offset from the lowest-RTT sample and converts tracker times to the Linux clock. Before the first estimate, and if an offset above 5 s is detected, it falls back to Linux receive time.
+- Measured in-session drift is 4.2 ms median with 0.39 ms fit jitter.
 
-## 2.2 Windows side (trackers)
+### MANUS rig: one Windows PC
 
-1. Install **VIVE Hub** and **SteamVR**, pair the five Ultimate Trackers with the dongle, and build the play-area map following VIVE Hub (inside-out tracking needs it).
-2. In SteamVR's tracker management, assign each tracker a role: `camera`, `left_wrist`, `right_wrist`, `left_ankle`, `right_ankle`.
-   - The role must be in the driver's supported list or the tracker never appears (`ROLES_FULL` / `ROLES_CLASSIC` in `devices/vive_tracker.py`).
-   - **Trackers with the role "Handheld object" are not reported.**
-3. SteamVR runs headless. The driver `devices/vive_tracker.py` is built on pyopenxr and derives XrTime from the Win32 performance-counter extension.
-4. On the Wuji rig, run the tracker sender on Windows and point it at TCP port 8766 on the Linux capture PC (an optional shared secret goes in `--tracker-token` / `EGO_TRACKER_TOKEN`).
+```mermaid
+flowchart LR
+    M[MANUS gloves] --> MC[MANUS Core + SDKMinimalClient_Windows.exe] -- UDP 9000 --> R
+    T[VIVE Ultimate Tracker ×5] -- SteamVR / OpenXR (same PC) --> R
+    G[GoPro + Media Mod] -- HDMI → capture card --> R[record_ego_manus.py]
+    R --> F[session folder]
+```
 
-> ⚠️ Known issue: on the MANUS rig the trackers are only recorded at ~15 Hz. The OpenXR session is created with `MND_HEADLESS` and submits zero layers per frame, so the runtime throttles the frame loop to a background cadence (90/6 ≈ 15 Hz), and the recording rate equals how often `xr.wait_frame()` returns. The real fix is to take pose sampling out of the XR frame loop and call `xrLocateSpace` from a high-rate thread. The Wuji rig goes through the Windows sender at ~65 Hz and does not have this problem.
+All three streams are stamped on one machine and one wall clock, so they are aligned as written. The MANUS sender emits 25-node skeletons; the recorder drops the four non-thumb metacarpals and writes **21 nodes (the Wuji / MediaPipe layout)**.
 
-## 2.3 Linux side (Wuji capture PC)
+## 2.2 Windows side: SteamVR and trackers
 
-1. **Capture card**: find the device and its formats
-   ```bash
-   sudo apt install v4l-utils
-   v4l2-ctl --list-devices
-   v4l2-ctl -d /dev/videoN --list-formats-ext
+1. Install **VIVE Hub** and **SteamVR**, pair the five Ultimate Trackers with the dongle and build the play-area map following VIVE Hub (inside-out tracking needs it).
+2. In SteamVR, **make SteamVR the active OpenXR Runtime**.
+3. Assign each tracker a role: `camera`, `left_wrist`, `right_wrist`, `left_ankle`, `right_ankle`.
+   - **A tracker with the role "Handheld object" yields no usable pose**; use the roles above.
+   - The sender prints the serials and roles it enumerates at startup, which you can check against.
+4. Install the Windows dependencies (just `numpy`, `msgpack`, `pyopenxr`):
+   ```powershell
+   python -m venv .venv-tracker
+   .\.venv-tracker\Scripts\Activate.ps1
+   python -m pip install -r requirements-tracker-windows.txt
    ```
-2. **Encoding**: recordings use the system ffmpeg's libx264 (`--video-codec h264 --crf 20 --h264-preset ultrafast`). The ffmpeg bundled with opencv-python often lacks libx264 and silently falls back to mp4v, so install the system ffmpeg. Video PTS are set from each frame's grab time (`timestamp_mode = capture-vfr`), so encoder speed never changes the timeline.
-3. **Wuji SDK**: install `wuji_sdk`. At startup the recorder imports the calibration bundle (default `wuji_calibration/calibration_bundle.zip`), scans and connects every glove and subscribes to `tactile` + `hand_skeleton` (derived zones, joint angles, EMF and point clouds are off by default to keep video capture real-time).
-4. **Network**: the Windows sender must reach TCP 8766 on the Linux PC.
-5. **Upload**: optionally configure an rclone remote storage; the recorder uploads manually or when a storage threshold is hit via `--rclone-remote` (chapter 4).
+
+**Tracker rate**:
+- Wuji rig: the sender sends at most 90 FPS by default (`--send-fps 90`) and Linux writes at most 120 FPS (`--tracker-record-fps`). The cap matters: some headless OpenXR runtimes return from `wait_frame` immediately, and without a cap they produce near-1000 FPS duplicate poses that starve glove reception on Linux.
+- MANUS rig: the local trackers are sampled on the **host clock** (`--tracker-sample-fps`, default 90). The headless SteamVR compositor only runs at about 15 Hz, but `xrLocateSpace` can be queried at any time, so sampling is no longer tied to the frame cadence; a full wait/begin/end frame is only pumped every 0.5 s to keep the session alive. **Older MANUS recordings made before this fix have trackers at about 15 Hz** (6.5).
+
+## 2.3 Linux side (Wuji rig)
+
+Ubuntu 22.04 or newer (required by the Wuji SDK), Python 3.10 / 3.11.
+
+```bash
+cd capture
+python3 -m venv .venv && source .venv/bin/activate
+python -m pip install -r requirements.txt      # numpy / opencv-python / msgpack / av / Pillow / wuji-sdk
+```
+
+**Connect the Wuji gloves.** Each glove uses its own Ethernet port (usually a USB Ethernet adapter); the factory addresses are `192.168.1.100` (left) and `192.168.1.101` (right). The setup script configures the NICs and routes and verifies the connection:
+
+```bash
+./scripts/setup_wuji_gloves.sh                     # detect ports, create persistent NetworkManager profiles, scan and connect
+./scripts/setup_wuji_gloves.sh --check             # check only, change nothing
+./scripts/setup_wuji_gloves.sh --interface enx001 --interface enx002   # name the NICs if auto-detection is ambiguous
+./scripts/setup_wuji_gloves.sh --expected-gloves 2 --allow-ufw         # require both gloves; open SDK ports if UFW is on
+```
+
+The script never flushes existing addresses and never touches the NIC carrying the default route. If the glove IPs were changed, pass `--left-ip`, `--right-ip` and `--host-prefix`.
+
+**Wuji calibration bundle**: at startup the recorder imports the glove calibration from `wuji_calibration/` (`--wuji-calibration` to point elsewhere, `--no-wuji-calibration` to use the SDK's current user). This folder comes from Wuji's own calibration tool and is not in the repository; get it from the person in charge of the devices.
+
+**Capture card**:
+
+```bash
+sudo apt install v4l-utils
+v4l2-ctl --list-devices
+v4l2-ctl -d /dev/videoN --list-formats-ext
+```
+
+Frame grabbing and encoding run in separate threads joined by a bounded queue; MP4 PTS come from each frame's grab time `t_host_us` (variable frame rate), so dropped frames never compress the playback timeline.
+
+**Firewall**: the Windows sender must reach TCP 8766 on Linux.
+
+```bash
+hostname -I                                               # Linux LAN IP
+sudo ufw allow from <WINDOWS_IP> to any port 8766 proto tcp
+```
+
+Never expose 8766 to the internet; even on a trusted LAN, set the same `--tracker-token` (or `EGO_TRACKER_TOKEN`) on both sides.
 
 ## 2.4 Windows capture PC for the MANUS rig
 
-1. Install MANUS Core and run the modified `SDKMinimalClient`, which sends raw skeleton frames over UDP to port 9000 on the same PC (`--manus-ip 0.0.0.0 --manus-port 9000`).
-2. MANUS UDP frames only carry an incrementing frame counter and no device clock; timestamps are the host wall clock at packet arrival, which is the same clock as video and trackers.
-3. The capture card uses DirectShow (`CAP_DSHOW`) on Windows.
+- Same `requirements.txt` (on Windows it installs `pyopenxr` and skips `wuji-sdk`).
+- Run `ManusClient/SDKMinimalClient_Windows.exe` (with `ManusSDK.dll` in the same folder) and point it at the recorder's IP and port (default `0.0.0.0:9000`).
+- The capture card uses DirectShow on Windows.
 
-## 2.5 Clocks and synchronisation
+## 2.5 Pre-capture checklist
 
-- Every timestamp is in **microseconds**; the master timeline is the **host wall clock** `t_host_us`.
-- Gloves also store the device clock `t_dev_us` (MANUS has none: −1). On the Wuji rig the tracker also stores the original Windows time `t_source_host_us`; `t_host_us − t_source_host_us` is the clock conversion applied to that sample.
-- Three streams, three rates: downstream code always resamples by timestamp and **never aligns by index** (chapters 8 and 12).
-
-## 2.6 Pre-capture checklist
-
-- [ ] All five trackers online in SteamVR with the right roles, no dropouts
-- [ ] Both gloves online, left/right slot matches what is worn
-- [ ] Recorder page shows video at the expected resolution and frame rate
-- [ ] Enough free disk (default cap 50 GB; above it the recorder uploads and cleans up)
-- [ ] Wuji rig: the page shows the Windows sender as connected
+- [ ] All five trackers online in SteamVR with the right roles
+- [ ] Wuji: `setup_wuji_gloves.sh --check` passes and both gloves scan; Wuji Studio is closed (it holds the SDK)
+- [ ] MANUS: the UDP sender is running with the right target IP / port
+- [ ] The recorder page shows "Tracker connected", with a camera preview and live tracker poses
+- [ ] Enough free disk

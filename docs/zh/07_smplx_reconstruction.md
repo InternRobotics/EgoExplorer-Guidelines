@@ -6,6 +6,10 @@
 
 ## 7.1 重建在做什么
 
+<video src="../../assets/video/reconstruction.mp4" controls muted loop playsinline width="100%"></video>
+
+*一条真实录制（做三明治，30 Hz）：五个带拖尾的坐标轴是 tracker 位姿，人体是解出的 SMPL-X，手上的颜色是手套测到的分区压力。*
+
 每条 session 经过三个阶段，每一阶段的结果都落盘，便于单独检查：
 
 | 阶段 | 做什么 | 产物（`$WORK/out/<阶段>/<sid>/`） |
@@ -50,7 +54,7 @@ $WORK/
 ├── ego_data_sync/<batch>/<session>/         原始录制（第 6 章的五个文件）
 ├── ego_data_lr_fixed/<batch>/<session>/     左右修正副本（第 9 章自动生成）
 ├── input/ego_data_sync/<batch>/<session>/   合并输入视图：修正过的取修正副本，其余取原始
-├── profiles/<subject>.json                  每位受试者、每次穿戴一份 subject profile（第 5 章）
+├── profiles/<batch>.json                    该 batch 的 subject profile（第 5 章；每位受试者、每次穿戴一份）
 └── out/                                     references / proposals / projected / unified_30hz / review / gallery
 ```
 
@@ -76,6 +80,17 @@ $WORK/
 
 ## 7.5 运行
 
+**一条命令跑完**（工具包的单机入口，依次执行下面各步以及第 8、9 章的导出、审阅页和 gallery，每步都跳过已完成的 session）：
+
+```bash
+WORK=/path/to/egoexplorer_work bash scripts/run_pipeline.sh all            # 所有 batch
+WORK=/path/to/egoexplorer_work bash scripts/run_pipeline.sh project <batch> # 只跑某一步、某个 batch
+WORK=/path/to/egoexplorer_work bash scripts/run_pipeline.sh status
+```
+
+投影发散的 session 会自动用 lr 0.002 重试一次。下面是各步分开执行的写法。
+
+
 **第 1 步：左右检查与修正**（第 9.1–9.2 节）。先做这一步，投影直接用修正后的输入，省得重跑。
 
 **第 2 步：建合并输入视图。** 要逐个文件建链接（`Path.rglob` 不会进入链接的目录，不能直接链接整个 session 目录）：
@@ -92,7 +107,7 @@ done
 **第 3 步：投影。** 每个 batch 用它自己的 profile 跑一次：
 
 ```bash
-B=<batch>; PROFILE=$WORK/profiles/<subject>.json
+B=<batch>; PROFILE=$WORK/profiles/$B.json
 python scripts/run_five_tracker_pipeline.py \
   --input-root $WORK/input/ego_data_sync/$B --subject-profile $PROFILE --checkpoint $CKPT \
   --output-root $WORK/out --body-model-path models/smplx --device cuda --workers 1 \

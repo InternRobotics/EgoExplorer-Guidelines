@@ -34,5 +34,5 @@
 10. **OOM-killed subprocesses leave no traceback**: for `status: failed` without an error message, check `dmesg | tail` for `oom-kill` first.
 11. **Never write results back into the capture folders**; write to `$WORK/out`.
 12. **`_恢复` (recovery) recordings are systematically lower quality**, and some have wrist trackers that never recorded; review them separately when selecting data.
-13. **MANUS-rig trackers run at ~15 Hz** (2.2), so about half of a 30 Hz export is interpolated; check `upsample_ratio`.
+13. **Older MANUS recordings have trackers at ~15 Hz** (2.2; fixed in the recorder), so about half of their 30 Hz export is interpolated; check `upsample_ratio`.
 14. **A wrong profile is expensive**: the same recording can go from about 60 mm to over 80 mm residual with another subject's profile. Keep one subject and one donning per batch.

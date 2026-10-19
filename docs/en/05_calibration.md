@@ -24,6 +24,12 @@ As long as the mounts are unchanged, one profile can be reused across days and t
 
 Hold every static pose for at least 3 s; perform dynamic motions slowly, continuously and with controlled range. The collector follows the 3D reference animation `outputs/calibration_protocol_reference.html` (rotatable, zoomable, frame by frame) or the three-view MP4. **Follow the "subject left/right" labels on the page; the left side of the screen is not the subject's left.**
 
+![The 01–17 calibration reference (SMPL-X reference geometry, labelled with times in the reference motion)](../assets/img/protocol-fig.jpg)
+
+<video src="../../assets/video/calibration_protocol_reference.mp4" controls muted loop playsinline width="100%"></video>
+
+*Collectors follow this three-view reference video (front, left, right). The same file ships as `assets/calibration_protocol_reference.mp4` in the toolkit.*
+
 | Stage | Duration | Motion | Used for |
 |---|---:|---|---|
 | 01 | 7 s | Neutral stance, toes forward, arms relaxed, looking ahead | Floor, height, initial root |
@@ -73,7 +79,7 @@ PYTHONPATH=src python -m five_tracker_smplx.cli calibrate-subject \
 - Optional `--smplx-prior <npz>`: betas recovered from video (e.g. GVHMR) as a shape prior only, never as per-frame alignment.
 - Fitting principles: one translation/rotation per tracker for the whole sequence; release only the first few betas with height and arm span as strong constraints (fitting all 10 betas freely from five trackers is unobservable); the pelvis–neck angle to gravity is only a soft constraint.
 
-**Outputs**: `subject_profile.json` (format `five_tracker_smplx_subject_profile_v5_wxyz_source_columns`) + `subject_calibration.html` (acceptance page).
+**Outputs**: `subject_profile.json` (format `five_tracker_smplx_subject_profile_v5_wxyz_source_columns`) + `subject_calibration.html` (acceptance page). Once it passes, copy `subject_profile.json` to `$WORK/profiles/<batch>.json`, where chapter 7 picks it up.
 
 ## 5.5 Acceptance
 

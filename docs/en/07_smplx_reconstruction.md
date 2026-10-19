@@ -6,6 +6,10 @@ This chapter covers body reconstruction (Complete + Constrain), hand fusion, and
 
 ## 7.1 What reconstruction does
 
+<video src="../../assets/video/reconstruction.mp4" controls muted loop playsinline width="100%"></video>
+
+*One real recording (sandwich making, 30 Hz): the five trailing gizmos are the tracker poses, the body is the solved SMPL-X, and the colour on the hands is the glove's own per-region pressure.*
+
 Each session goes through three stages, each written to disk so it can be inspected on its own:
 
 | Stage | What it does | Outputs (`$WORK/out/<stage>/<sid>/`) |
@@ -50,7 +54,7 @@ $WORK/
 ├── ego_data_sync/<batch>/<session>/         raw recordings (the five files of chapter 6)
 ├── ego_data_lr_fixed/<batch>/<session>/     L/R-corrected copies (written automatically, chapter 9)
 ├── input/ego_data_sync/<batch>/<session>/   merged input view: corrected copy where one exists, otherwise raw
-├── profiles/<subject>.json                  one subject profile per subject and donning (chapter 5)
+├── profiles/<batch>.json                    subject profile of that batch (chapter 5; one per subject and donning)
 └── out/                                     references / proposals / projected / unified_30hz / review / gallery
 ```
 
@@ -76,6 +80,17 @@ Two values you must know the reason for:
 
 ## 7.5 Running it
 
+**One command** (the toolkit's single-machine driver runs the steps below plus the export, review pages and gallery of chapters 8–9, skipping finished sessions at every step):
+
+```bash
+WORK=/path/to/egoexplorer_work bash scripts/run_pipeline.sh all            # every batch
+WORK=/path/to/egoexplorer_work bash scripts/run_pipeline.sh project <batch> # one step, one batch
+WORK=/path/to/egoexplorer_work bash scripts/run_pipeline.sh status
+```
+
+A diverged projection is retried once at lr 0.002. The individual steps are below.
+
+
 **Step 1: left/right checks and fixes** (9.1–9.2). Do this first so projection reads the corrected input and nothing has to be rerun.
 
 **Step 2: build the merged input view.** Link each file separately (`Path.rglob` does not descend into symlinked folders, so linking whole session folders does not work):
@@ -92,7 +107,7 @@ done
 **Step 3: projection**, once per batch with that batch's profile:
 
 ```bash
-B=<batch>; PROFILE=$WORK/profiles/<subject>.json
+B=<batch>; PROFILE=$WORK/profiles/$B.json
 python scripts/run_five_tracker_pipeline.py \
   --input-root $WORK/input/ego_data_sync/$B --subject-profile $PROFILE --checkpoint $CKPT \
   --output-root $WORK/out --body-model-path models/smplx --device cuda --workers 1 \

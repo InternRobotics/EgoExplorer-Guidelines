@@ -40,7 +40,7 @@ Keys follow `{device}__{stream}__t_us / __t_dev_us / __t_host_us` and `{device}_
 
 | Key | Wuji | MANUS (new, 21-node) | MANUS (old, 25-node) |
 |---|---|---|---|
-| `glove_*__hand_skeleton` | (T, 21, 7) | (T, 21, 7) | (T, 25, 7) |
+| `glove_*__hand_skeleton` | (T, 21, 7) | (T, 21, 7) (reduced from 25 nodes by the recorder) | (T, 25, 7) |
 | `glove_*__tactile` | (T, 744) | — | — |
 | `glove_*__hand_joint_angles.angles` / `.conf` | — | (T, 20) / (T, 5) | present |
 | Rate | ~120 Hz | skeleton ~220 Hz, angles ~200 Hz | ~22 Hz |
@@ -70,7 +70,8 @@ Left/right correction (chapter 9) only rewrites this file in the corrected copy 
 
 | Rig | Video | Gloves | Trackers |
 |---|---|---|---|
-| MANUS (older batches) | ~52–60 Hz | ~22 Hz (25-node) / ~220 Hz (21-node) | **~15 Hz** |
+| MANUS (older batches) | ~52–60 Hz | ~22 Hz (25-node) / ~220 Hz (21-node) | **~15 Hz** (before the recorder fix) |
+| MANUS (current recorder) | ~60 Hz | ~220 Hz | host-clock sampling, 90 Hz by default |
 | Wuji | **~30 Hz** (nominal 60) | ~120 Hz | ~65 Hz |
 
 Three rates in one recording, and a 4× tracker difference across rigs. Resample by timestamp at every stage (`np.interp` / Slerp); **never align by index and never assume a fixed rate**.
