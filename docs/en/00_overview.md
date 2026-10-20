@@ -9,7 +9,7 @@ A person wears a light rig and works in real rooms (laboratory, factory bay, liv
 | | Stream | Device | Native rate (measured) |
 |---|---|---|---|
 | A | Egocentric video | GoPro HERO13 Black + Media Mod, rigidly coupled to the head tracker through a 3D-printed adapter | ~30 Hz on the Wuji rig; ~52–60 Hz on the MANUS rig |
-| B | Whole-body motion | 5 × VIVE Ultimate Tracker (head, both wrists, both lateral ankles), inside-out, no base stations | ~65 Hz on the Wuji rig; 90 Hz by default on the MANUS rig (older recordings ~15 Hz, see 2.2) |
+| B | Whole-body motion | 5 × VIVE Ultimate Tracker (head, both wrists, both lateral ankles), inside-out, no base stations | ~65 Hz on the Wuji rig; 90 Hz by default on the MANUS rig (older recordings ~15 Hz, see 2.2.3) |
 | C | Finger articulation | MANUS Metagloves Pro **or** Wuji gloves | MANUS ~22 Hz (old 25-node) / ~220 Hz (new 21-node); Wuji ~120 Hz |
 | D | Touch | Wuji glove, 24×31 = 744 taxels per hand | ~120 Hz |
 

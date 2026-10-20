@@ -2,21 +2,21 @@
 
 [Back to contents](../index.md#english) · [中文](../zh/04_data_collection.md)
 
-<video src="../../assets/video/tasks.mp4" controls muted loop playsinline width="100%"></video>
+<video src="../assets/video/tasks.mp4" controls muted loop playsinline width="100%"></video>
 
 *Ten task templates, one rig, one calibration protocol: six laboratory procedures on top, four household and industrial tasks below.*
 
 ## 4.1 A capture day
 
 ```text
-Wear (ch. 1) → host checks (2.5) → record the 01–17 calibration (ch. 5) → record the task list → spot-check replays → upload → fill in the capture log
+Wear (ch. 1) → host checks (2.1.4 / 2.2.5) → record the 01–17 calibration (ch. 5) → record the task list → spot-check replays → upload (optional) → fill in the capture log
 ```
 
 1. **Wear the rig and run the checks.**
 2. **Record calibration first**, for every donning (two or three takes in the same donning are a good spare). Calibration sessions must be recognisable by name (e.g. a task named "calibration").
 3. **Record the task list** (launch in chapter 3). Pick the current task on the page, `r` to start, `e` to save; `d` discards a botched take.
 4. **Spot-check**: replay a few sessions every day with `visualize_session.py` (4.4).
-5. **Upload** with `scripts/rclone_*.sh/.bat` or the recorder's automatic upload.
+5. **Upload (optional)**: if local storage runs short, set up cloud object storage and rclone and upload (3.7).
 6. **Capture log**: the recorder writes `recording_log_<date>.csv` next to the data folder (start/end time, duration and per-stream frame counts per session). Also note by hand which subject and which donning each session belongs to; processing groups sessions into batches by exactly that.
 
 ## 4.2 Naming and layout

@@ -8,19 +8,19 @@
 
 ## 1.1 Bill of materials
 
-> **To be completed**: exact models, quantities and purchase (Taobao) links will be filled in by the colleague in charge of hardware.
+> **To be completed**: purchase links for the gloves will be filled in by the colleague in charge of hardware.
 
 | Part | Model / spec | Qty | Purchase link | Notes |
 |---|---|---|---|---|
-| Body trackers | VIVE Ultimate Tracker (with wireless dongle) | 5 | TBD | Inside-out tracking, **no base stations** |
-| Head camera | GoPro HERO13 Black | 1 | TBD | |
-| Media module | GoPro Media Mod | 1 | TBD | Provides the micro-HDMI output |
-| HDMI capture card | USB UVC capture card | 1 | TBD | `/dev/videoN` on Linux |
-| micro-HDMI → HDMI cable | | 1 | TBD | |
-| Gloves (one of) | MANUS Metagloves Pro | 1 pair | TBD | Finger articulation only, no touch |
-| | Wuji gloves | 1 pair | TBD | Finger articulation + 24×31 touch per hand; connected over Ethernet |
-| USB Ethernet adapters (Wuji) | | 2 | TBD | One port per Wuji glove |
-| Head strap, straps | | several | TBD | 1 head strap, 2 hand straps, 2 ankle straps |
+| Body trackers | VIVE Ultimate Tracker (with wireless dongle) | 5 | [VIVE Ultimate Tracker (Taobao)](https://e.tb.cn/h.j2riSa4h9gOXIbP?tk=bTaNTF8KLgN) | Inside-out tracking, **no base stations** |
+| Head camera | GoPro HERO13 Black | 1 | [GoPro HERO13 Black (Taobao)](https://e.tb.cn/h.jX74wO5kS7nAy2D?tk=eQhiTF8vq0V) | |
+| Media module | GoPro Media Mod (for HERO13/12/11) | 1 | [GoPro Media Mod (Taobao)](https://e.tb.cn/h.jWg7Rd1eJVpQFGl?tk=sRXrTF8xGCs) | Provides the micro-HDMI output |
+| HDMI capture card | UGREEN 4K60Hz USB UVC capture card | 1 | [HDMI capture card (JD)](https://3.cn/37Yq-tog?jkl=@Q3DcI0h3Iu7W@) | `/dev/videoN` on Linux |
+| micro-HDMI → HDMI cable | Micro HDMI to HDMI cable | 1 | [micro-HDMI cable (JD)](https://3.cn/37YriR-s?jkl=@XB71C3CgoM8X@) | |
+| Gloves (one of) | MANUS Metagloves Pro | 1 pair | — | Finger articulation only, no touch |
+| | Wuji gloves | 1 pair | — | Finger articulation + 24×31 touch per hand; connected over Ethernet |
+| USB Ethernet dock | UGREEN USB 3.0 gigabit Ethernet dock | 2 | [USB Ethernet dock (JD)](https://3.cn/37-YsP1x?jkl=@VER0R1iYlA3G@) | One port per Wuji glove |
+| Head strap, straps | VIVE tracker straps; GoPro head strap | several | [Tracker straps (Taobao)](https://e.tb.cn/h.jX7EVqK0xb7nHvB?tk=vOtgTFj8BVK)<br>[GoPro head strap (Taobao)](https://e.tb.cn/h.jc684WNxd6oG6gN?tk=BdM7TFj9A15) | 1 head strap, 2 hand straps, 2 ankle straps |
 | Linux capture PC (Wuji rig) | Ubuntu 22.04+ | 1 | — | Can be a portable device |
 | Windows PC | runs SteamVR | 1 | — | Wuji rig: trackers only; MANUS rig: the whole capture |
 
@@ -30,9 +30,8 @@
 
 | Part | Purpose | File | Qty |
 |---|---|---|---|
-| Head adapter | Couples the GoPro **rigidly** to the head tracker, mounted on the head strap | TBD | 1 |
-| Hand base | Holds a tracker on the glove dorsum | TBD | 2 |
-| Ankle base | Holds a tracker on the lateral ankle | TBD | 2 |
+| Head adapter | Couples the GoPro **rigidly** to the head tracker, mounted on the head strap | gopro-tracker.stl | 1 |
+| Hand base | Holds a tracker on the glove dorsum | wuji-contact.stl | 2 |
 
 ## 1.3 Tracker roles
 
@@ -41,7 +40,7 @@ Role names are fixed. The recorder, the pipeline and the release format all use 
 | Recorder role (SteamVR role) | Pipeline role | Where it is worn | SMPL-X anchor joint |
 |---|---|---|---|
 | `camera` | `head` | Head, rigidly coupled to the GoPro | 15 (head) |
-| `left_wrist` | `left_hand` | Back of the **subject's own** left hand | 20 (left_wrist) |
+| `left_wrist` | `left_hand` | Back of the subject's own left hand | 20 (left_wrist) |
 | `right_wrist` | `right_hand` | Back of the subject's own right hand | 21 (right_wrist) |
 | `left_ankle` | `left_foot` | Subject's own left lateral ankle | 7 (left_ankle) |
 | `right_ankle` | `right_foot` | Subject's own right lateral ankle | 8 (right_ankle) |
@@ -68,6 +67,6 @@ Two people work best: one wears, one checks.
 
 - **Calibration and task recordings must come from the same donning.** After a tracker is removed and re-attached, a strap slips, or the subject changes, record a new calibration (chapter 5). No coordinate fix can compensate for an unknown mounting rotation after remounting.
 - **Do not adjust trackers between tasks.** The mounting extrinsics (tracker translation and rotation relative to the bone) are solved once per donning.
-- **Get left and right right.** Past batches contained 17 sessions with swapped trackers and 70 with swapped gloves. Chapter 9 detects and corrects these, but avoid them at the source.
+- **Get left and right right.** Each tracker must be worn according to the role it is assigned in SteamVR; otherwise the SMPL-X solve is affected.
 - **A loose strap is worse than none.** A tracker that slowly slides shows up as drift: every frame looks plausible and the optimiser quietly absorbs the error into body pose.
-- **Wuji touch** degrades slowly with use, and some lines become intermittent. Start every recording with about 15 s of tactile calibration motion (both hands make a fist, open, press) so a per-session health estimate is possible.
+- **Wuji touch** degrades slowly with use, and some lines become intermittent. Redo the tactile calibration in Wuji Studio at the start of every recording (about 15 s of tactile calibration motion, so a per-session health estimate is possible).

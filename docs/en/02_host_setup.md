@@ -4,9 +4,9 @@
 
 The capture code is in `capture/` of [egoexplorer-toolkit](https://github.com/InternRobotics/egoexplorer-toolkit). One code base supports both **Wuji** and **MANUS** gloves, with entry points `record_ego_wuji.py` and `record_ego_manus.py`.
 
-## 2.1 Two topologies
+## 2.1 Wuji rig: Linux capture PC + Windows tracker PC
 
-### Wuji rig: Linux capture PC + Windows tracker PC
+### 2.1.1 Topology
 
 ```mermaid
 flowchart LR
@@ -21,19 +21,7 @@ flowchart LR
 - Windows sends every pose with its own wall-clock time. Every 2 s the two sides take an NTP-style four-timestamp sample; Linux estimates the `Windows − Linux` offset from the lowest-RTT sample and converts tracker times to the Linux clock. Before the first estimate, and if an offset above 5 s is detected, it falls back to Linux receive time.
 - Measured in-session drift is 4.2 ms median with 0.39 ms fit jitter.
 
-### MANUS rig: one Windows PC
-
-```mermaid
-flowchart LR
-    M[MANUS gloves] --> MC[MANUS Core + SDKMinimalClient_Windows.exe] -- UDP 9000 --> R
-    T[VIVE Ultimate Tracker ×5] -- SteamVR / OpenXR (same PC) --> R
-    G[GoPro + Media Mod] -- HDMI → capture card --> R[record_ego_manus.py]
-    R --> F[session folder]
-```
-
-All three streams are stamped on one machine and one wall clock, so they are aligned as written. The MANUS sender emits 25-node skeletons; the recorder drops the four non-thumb metacarpals and writes **21 nodes (the Wuji / MediaPipe layout)**.
-
-## 2.2 Windows side: SteamVR and trackers
+### 2.1.2 Windows side: SteamVR and trackers
 
 1. Install **VIVE Hub** and **SteamVR**, pair the five Ultimate Trackers with the dongle and build the play-area map following VIVE Hub (inside-out tracking needs it).
 2. In SteamVR, **make SteamVR the active OpenXR Runtime**.
@@ -47,11 +35,9 @@ All three streams are stamped on one machine and one wall clock, so they are ali
    python -m pip install -r requirements-tracker-windows.txt
    ```
 
-**Tracker rate**:
-- Wuji rig: the sender sends at most 90 FPS by default (`--send-fps 90`) and Linux writes at most 120 FPS (`--tracker-record-fps`). The cap matters: some headless OpenXR runtimes return from `wait_frame` immediately, and without a cap they produce near-1000 FPS duplicate poses that starve glove reception on Linux.
-- MANUS rig: the local trackers are sampled on the **host clock** (`--tracker-sample-fps`, default 90). The headless SteamVR compositor only runs at about 15 Hz, but `xrLocateSpace` can be queried at any time, so sampling is no longer tied to the frame cadence; a full wait/begin/end frame is only pumped every 0.5 s to keep the session alive. **Older MANUS recordings made before this fix have trackers at about 15 Hz** (6.5).
+**Tracker rate**: the sender sends at most 90 FPS by default (`--send-fps 90`) and Linux writes at most 120 FPS (`--tracker-record-fps`). The cap matters: some headless OpenXR runtimes return from `wait_frame` immediately, and without a cap they produce near-1000 FPS duplicate poses that starve glove reception on Linux.
 
-## 2.3 Linux side (Wuji rig)
+### 2.1.3 Linux side
 
 Ubuntu 22.04 or newer (required by the Wuji SDK), Python 3.10 / 3.11.
 
@@ -81,11 +67,18 @@ The script never flushes existing addresses and never touches the NIC carrying t
    python scripts/wuji_calibration_tool.py users                  # existing users, * = current
    python scripts/wuji_calibration_tool.py create-user "rig-A"    # note the returned user_id
    ```
-3. Calibrate:
+3. Calibrate (prefer 3.1; use 3.2 if Wuji Studio is not available):
+
+   **3.1 Calibrate in Wuji Studio (recommended)**
+
+   Open Wuji Studio, select the user created in the previous step and run the hand calibration for each glove following the [Wuji Studio documentation](https://docs.wuji.tech/docs/en/wuji-studio/latest/). When it is done, **close Wuji Studio** before exporting.
+
+   **3.2 Calibrate with the script**
+
    ```bash
    python scripts/wuji_calibration_tool.py calibrate --user <user_id>
    ```
-   This runs the SDK hand calibration for each glove; the terminal prints each requested pose (step name, state, hints) — follow them through. Calibrating the same user in Wuji Studio works too.
+   This runs the SDK hand calibration for each glove; the terminal prints each requested pose (step name, state, hints) — follow them through.
 4. Export:
    ```bash
    python scripts/wuji_calibration_tool.py export --user <user_id>   # -> wuji_calibration/calibration_bundle.zip
@@ -114,16 +107,51 @@ sudo ufw allow from <WINDOWS_IP> to any port 8766 proto tcp
 
 Never expose 8766 to the internet; even on a trusted LAN, set the same `--tracker-token` (or `EGO_TRACKER_TOKEN`) on both sides.
 
-## 2.4 Windows capture PC for the MANUS rig
-
-- Same `requirements.txt` (on Windows it installs `pyopenxr` and skips `wuji-sdk`).
-- **Download the MANUS UDP sender yourself** (MANUS SDK licence; not in the repository): install MANUS Core and download the MANUS SDK from the MANUS website, and put the UDP sender `SDKMinimalClient_Windows.exe` and `ManusSDK.dll` in `capture/ManusClient/` (steps and the UDP packet format are in that folder's `README.md`). Point it at the recorder's IP and port (default `0.0.0.0:9000`).
-- The capture card uses DirectShow on Windows.
-
-## 2.5 Pre-capture checklist
+### 2.1.4 Pre-capture checklist
 
 - [ ] All five trackers online in SteamVR with the right roles
-- [ ] Wuji: `setup_wuji_gloves.sh --check` passes and both gloves scan; Wuji Studio is closed (it holds the SDK); `wuji_calibration/calibration_bundle.zip` belongs to this pair of gloves
-- [ ] MANUS: the UDP sender is running with the right target IP / port
+- [ ] `setup_wuji_gloves.sh --check` passes and both gloves scan; Wuji Studio is closed (it holds the SDK); `wuji_calibration/calibration_bundle.zip` belongs to this pair of gloves
+- [ ] The recorder page shows "Tracker connected", with a camera preview and live tracker poses
+- [ ] Enough free disk
+
+## 2.2 MANUS rig: one Windows PC
+
+### 2.2.1 Topology
+
+```mermaid
+flowchart LR
+    M[MANUS gloves] --> MC[MANUS Core + SDKMinimalClient_Windows.exe] -- UDP 9000 --> R
+    T[VIVE Ultimate Tracker ×5] -- SteamVR / OpenXR (same PC) --> R
+    G[GoPro + Media Mod] -- HDMI → capture card --> R[record_ego_manus.py]
+    R --> F[session folder]
+```
+
+All three streams are stamped on one machine and one wall clock, so they are aligned as written. The MANUS sender emits 25-node skeletons; the recorder drops the four non-thumb metacarpals and writes **21 nodes (the Wuji / MediaPipe layout)**.
+
+### 2.2.2 MANUS Core and SDKMinimalClient
+
+MANUS glove data passes through two programs before it reaches the recorder:
+
+- **MANUS Core**: the official MANUS glove service, which connects the gloves, runs the hand calibration and solves the finger data. Download and install it from the [MANUS resources page](https://docs.manus-meta.com/3.0.0/Resources/) and pair and calibrate the gloves following the official instructions.
+- **SDKMinimalClient** (`SDKMinimalClient_Windows.exe`): an exe built from the MANUS SDK sources. It pulls glove data from MANUS Core through the SDK and sends it over UDP to the recorder `record_ego_manus.py`. **To be confirmed**: the source and a prebuilt exe will be provided.
+
+When capturing, start MANUS Core first and confirm the gloves are online, then start SDKMinimalClient, and start the recorder last.
+
+### 2.2.3 SteamVR and trackers
+
+Follow steps 1–3 of 2.1.2 to install VIVE Hub and SteamVR, pair the trackers, set the OpenXR runtime and assign roles. The trackers are read directly on this PC, so no separate sender environment is needed.
+
+**Tracker rate**: the local trackers are sampled on the **host clock** (`--tracker-sample-fps`, default 90). The headless SteamVR compositor only runs at about 15 Hz, but `xrLocateSpace` can be queried at any time, so sampling is no longer tied to the frame cadence; a full wait/begin/end frame is only pumped every 0.5 s to keep the session alive. **Older MANUS recordings made before this fix have trackers at about 15 Hz** (6.5).
+
+### 2.2.4 Capture PC setup
+
+- Same `requirements.txt` (on Windows it installs `pyopenxr` and skips `wuji-sdk`).
+- Prepare MANUS Core and the UDP sender as in 2.2.2.
+- The capture card uses DirectShow on Windows.
+
+### 2.2.5 Pre-capture checklist
+
+- [ ] All five trackers online in SteamVR with the right roles
+- [ ] The UDP sender is running with the right target IP / port
 - [ ] The recorder page shows "Tracker connected", with a camera preview and live tracker poses
 - [ ] Enough free disk
