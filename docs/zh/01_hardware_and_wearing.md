@@ -8,19 +8,19 @@
 
 ## 1.1 采购清单
 
-> **待补充**：具体型号、数量和淘宝购买链接由硬件负责同事提供后补全。
+> **待补充**：手套的购买链接由硬件负责同事提供后补全。
 
 | 部件 | 型号 / 规格 | 数量 | 购买链接 | 备注 |
 |---|---|---|---|---|
-| 身体 tracker | VIVE Ultimate Tracker（含无线接收器） | 5 | 待补充 | inside-out 定位，**不需要基站** |
-| 头部相机 | GoPro HERO13 Black | 1 | 待补充 | |
-| 相机媒体模组 | GoPro Media Mod | 1 | 待补充 | 提供 micro-HDMI 输出 |
-| HDMI 采集卡 | USB UVC 采集卡 | 1 | 待补充 | Linux 下为 `/dev/videoN` |
-| micro-HDMI → HDMI 线 | | 1 | 待补充 | |
-| 手套（二选一） | MANUS Metagloves Pro | 1 副 | 待补充 | 只有手指关节，无触觉 |
-| | Wuji 手套 | 1 副 | 待补充 | 手指关节 + 每手 24×31 触觉；通过以太网连接 |
-| USB 以太网卡（Wuji） | | 2 | 待补充 | 每只 Wuji 手套一个网口 |
-| 头环、绑带 | | 若干 | 待补充 | 头环 1、手背绑带 2、踝部绑带 2 |
+| 身体 tracker | VIVE Ultimate Tracker（含无线接收器） | 5 | [VIVE Ultimate Tracker（淘宝）](https://e.tb.cn/h.j2riSa4h9gOXIbP?tk=bTaNTF8KLgN) | inside-out 定位，**不需要基站** |
+| 头部相机 | GoPro HERO13 Black | 1 | [GoPro HERO13 Black（淘宝）](https://e.tb.cn/h.jX74wO5kS7nAy2D?tk=eQhiTF8vq0V) | |
+| 相机媒体模组 | GoPro Media Mod（适用 HERO13/12/11） | 1 | [GoPro 媒体模组（淘宝）](https://e.tb.cn/h.jWg7Rd1eJVpQFGl?tk=sRXrTF8xGCs) | 提供 micro-HDMI 输出 |
+| HDMI 采集卡 | 绿联 4K60Hz USB UVC 采集卡 | 1 | [HDMI 采集卡（京东）](https://3.cn/37Yq-tog?jkl=@Q3DcI0h3Iu7W@) | Linux 下为 `/dev/videoN` |
+| micro-HDMI → HDMI 线 | Micro HDMI 转 HDMI 线 | 1 | [micro-HDMI 线（京东）](https://3.cn/37YriR-s?jkl=@XB71C3CgoM8X@) | |
+| 手套（二选一） | MANUS Metagloves Pro | 1 副 | — | 只有手指关节，无触觉 |
+| | Wuji 手套 | 1 副 | — | 手指关节 + 每手 24×31 触觉；通过以太网连接 |
+| USB 网口拓展坞 | 绿联 USB3.0 千兆网口扩展坞 | 2 | [USB 网口拓展坞（京东）](https://3.cn/37-YsP1x?jkl=@VER0R1iYlA3G@) | 每只 Wuji 手套一个网口 |
+| 头环、绑带 | VIVE tracker 绑带；GoPro 头带 | 若干 | [tracker 绑带（淘宝）](https://e.tb.cn/h.jX7EVqK0xb7nHvB?tk=vOtgTFj8BVK)<br>[GoPro 头带（淘宝）](https://e.tb.cn/h.jc684WNxd6oG6gN?tk=BdM7TFj9A15) | 头环 1、手背绑带 2、踝部绑带 2 |
 | Linux 采集机（Wuji 方案） | Ubuntu 22.04+ | 1 | — | 可以是便携设备 |
 | Windows 主机 | 运行 SteamVR | 1 | — | Wuji 方案只负责 tracker；MANUS 方案负责全部采集 |
 
@@ -30,9 +30,8 @@
 
 | 打印件 | 用途 | 文件 | 数量 |
 |---|---|---|---|
-| 头部转接件 | 把 GoPro 与头部 tracker **刚性**连在一起，再固定到头环上 | 待补充 | 1 |
-| 手背底座 | tracker 固定在手套手背 | 待补充 | 2 |
-| 踝部底座 | tracker 固定在脚踝外侧 | 待补充 | 2 |
+| 头部转接件 | 把 GoPro 与头部 tracker **刚性**连在一起，再固定到头环上 | gopro-tracker.stl | 1 |
+| 手背底座 | tracker 固定在手套手背 | wuji-contact.stl | 2 |
 
 ## 1.3 五个 tracker 的角色
 
@@ -41,7 +40,7 @@
 | 采集端角色（SteamVR role） | 管线内部角色 | 佩戴位置 | 对应 SMPL-X 关节 |
 |---|---|---|---|
 | `camera` | `head` | 头部，与 GoPro 刚性相连 | 15（head） |
-| `left_wrist` | `left_hand` | **受试者自己的**左手手背 | 20（left_wrist） |
+| `left_wrist` | `left_hand` | 受试者自己的左手手背 | 20（left_wrist） |
 | `right_wrist` | `right_hand` | 受试者自己的右手手背 | 21（right_wrist） |
 | `left_ankle` | `left_foot` | 受试者自己的左踝外侧 | 7（left_ankle） |
 | `right_ankle` | `right_foot` | 受试者自己的右踝外侧 | 8（right_ankle） |
@@ -68,6 +67,6 @@
 
 - **标定和任务录制必须是同一次穿戴。** tracker 被拆下重装、绑带滑动、换受试者之后，都必须重新采一段标定（第 5 章）。坐标修正补偿不了拆装后未知的安装旋转。
 - **不要在任务之间调整 tracker。** 安装外参（tracker 相对骨骼的平移和旋转）在整次穿戴里只解一份。
-- **左右一定要对。** 历史批次里查出过 17 条 tracker 左右反、70 条手套左右反（第 9 章能自动检测并修正，但最好源头避免）。
+- **左右一定要对。** Tracker需要按照SteamVR中的设置进行配对，否则会影响SMPLX的解算。
 - **绑带松了比没绑更糟**：tracker 慢慢滑动会表现为"漂移"，每一帧看都合理，优化器会悄悄把误差吸收进身体姿态里。
-- **Wuji 触觉**会随使用缓慢衰减，个别线路可能时断时续。建议每段录制开头做约 15 秒的触觉标定动作（双手依次握拳、张开、按压），便于逐 session 估计健康系数。
+- **Wuji 触觉**会随使用缓慢衰减，个别线路可能时断时续。建议每段录制开头在wuji studio中重新完成触觉标定（做约 15 秒的触觉标定动作，便于逐 session 估计健康系数）。

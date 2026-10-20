@@ -9,7 +9,7 @@
 | | 信号 | 设备 | 原生速率（实测） |
 |---|---|---|---|
 | A | 第一视角视频 | GoPro HERO13 Black + Media Mod，经 3D 打印转接件与头部 tracker 刚性相连 | Wuji 方案实测约 30 Hz；MANUS 方案约 52–60 Hz |
-| B | 全身运动 | 5 × VIVE Ultimate Tracker（头、双腕、双踝外侧），inside-out，无基站 | Wuji 方案约 65 Hz；MANUS 方案默认 90 Hz（旧录制约 15 Hz，见第 2.2 节） |
+| B | 全身运动 | 5 × VIVE Ultimate Tracker（头、双腕、双踝外侧），inside-out，无基站 | Wuji 方案约 65 Hz；MANUS 方案默认 90 Hz（旧录制约 15 Hz，见第 2.2.3 节） |
 | C | 手指关节 | MANUS Metagloves Pro **或** Wuji 手套 | MANUS 约 22 Hz（旧 25 点）/ 约 220 Hz（新 21 点）；Wuji 约 120 Hz |
 | D | 触觉 | Wuji 手套，每手 24×31 = 744 个 taxel | 约 120 Hz |
 

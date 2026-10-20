@@ -4,9 +4,9 @@
 
 采集代码在 [egoexplorer-toolkit](https://github.com/InternRobotics/egoexplorer-toolkit) 的 `capture/` 目录：一套代码同时支持 **Wuji** 和 **MANUS** 两种手套，入口分别是 `record_ego_wuji.py` 和 `record_ego_manus.py`。
 
-## 2.1 两种拓扑
+## 2.1 Wuji 方案：Linux 采集机 + Windows tracker 机
 
-### Wuji 方案：Linux 采集机 + Windows tracker 机
+### 2.1.1 拓扑
 
 ```mermaid
 flowchart LR
@@ -21,19 +21,7 @@ flowchart LR
 - Windows 每帧发送位姿和自己的墙钟时间。两端每 2 秒做一次 NTP 式四时间戳采样，Linux 用最低 RTT 的样本估计 `Windows − Linux` 时钟偏移，把 tracker 时间换算到 Linux 墙钟。校时完成前用 Linux 收包时间；检测到超过 5 秒的异常偏移时也会回退到收包时间。
 - 实测 session 内总漂移中位数 4.2 ms，拟合抖动 0.39 ms。
 
-### MANUS 方案：单台 Windows 主机
-
-```mermaid
-flowchart LR
-    M[MANUS 手套] --> MC[MANUS Core + SDKMinimalClient_Windows.exe] -- UDP 9000 --> R
-    T[VIVE Ultimate Tracker ×5] -- SteamVR / OpenXR（本机） --> R
-    G[GoPro + Media Mod] -- HDMI → 采集卡 --> R[record_ego_manus.py]
-    R --> F[session 目录]
-```
-
-三路数据在同一台机器、同一个墙钟上打时间戳，落盘即对齐。MANUS 发送端发出 25 节点骨骼，采集端丢掉 4 个非拇指掌骨关节，以 **21 节点（与 Wuji / MediaPipe 一致）** 落盘。
-
-## 2.2 Windows 端：SteamVR 与 tracker
+### 2.1.2 Windows 端：SteamVR 与 tracker
 
 1. 安装 **VIVE Hub** 和 **SteamVR**，把 5 个 Ultimate Tracker 配对到无线接收器，按 VIVE Hub 的流程建好场地地图（inside-out 定位需要）。
 2. 在 SteamVR 里把 **SteamVR 设为当前的 OpenXR Runtime**。
@@ -47,11 +35,9 @@ flowchart LR
    python -m pip install -r requirements-tracker-windows.txt
    ```
 
-**tracker 帧率**：
-- Wuji 方案：发送端默认最多 90 FPS（`--send-fps 90`），Linux 端写入上限 120 FPS（`--tracker-record-fps`）。必须限速，因为部分 headless OpenXR Runtime 的 `wait_frame` 会立即返回，不限速会产生近千 FPS 的重复位姿，挤占 Linux 上的手套接收。
-- MANUS 方案：本机 tracker 按**主机时钟**采样（`--tracker-sample-fps`，默认 90）。headless SteamVR 的合成器只有约 15 Hz，但 `xrLocateSpace` 可以随时查询，所以采样不再受帧节拍限制；完整的 wait/begin/end 帧每 0.5 s 才走一次，用来维持会话。**修复前的旧 MANUS 录制 tracker 只有约 15 Hz**（第 6.5 节）。
+**tracker 帧率**：发送端默认最多 90 FPS（`--send-fps 90`），Linux 端写入上限 120 FPS（`--tracker-record-fps`）。必须限速，因为部分 headless OpenXR Runtime 的 `wait_frame` 会立即返回，不限速会产生近千 FPS 的重复位姿，挤占 Linux 上的手套接收。
 
-## 2.3 Linux 端（Wuji 方案）
+### 2.1.3 Linux 端
 
 建议 Ubuntu 22.04 或更新版本（Wuji SDK 要求），Python 3.10 / 3.11。
 
@@ -81,11 +67,18 @@ python -m pip install -r requirements.txt      # numpy / opencv-python / msgpack
    python scripts/wuji_calibration_tool.py users                  # 列出已有用户，* 为当前用户
    python scripts/wuji_calibration_tool.py create-user "rig-A"    # 记下返回的 user_id
    ```
-3. 标定：
+3. 标定（优先用 3.1，没有 Wuji Studio 时用 3.2）：
+
+   **3.1 使用 Wuji Studio 标定（推荐）**
+
+   打开 Wuji Studio，选中上一步创建的用户，按 [Wuji Studio 文档](https://docs.wuji.tech/docs/en/wuji-studio/latest/) 逐只手套完成手部标定。标定完成后**关闭 Wuji Studio**，再进行下一步导出。
+
+   **3.2 使用脚本标定**
+
    ```bash
    python scripts/wuji_calibration_tool.py calibrate --user <user_id>
    ```
-   逐只手套运行 SDK 的手部标定，终端会逐步提示要摆的手势（每步的名称、状态和提示），按提示做完即可。也可以在 Wuji Studio 里对同一个用户完成标定。
+   逐只手套运行 SDK 的手部标定，终端会逐步提示要摆的手势（每步的名称、状态和提示），按提示做完即可。
 4. 导出：
    ```bash
    python scripts/wuji_calibration_tool.py export --user <user_id>   # → wuji_calibration/calibration_bundle.zip
@@ -114,16 +107,51 @@ sudo ufw allow from <WINDOWS_IP> to any port 8766 proto tcp
 
 不要把 8766 暴露到公网；在局域网里也建议两端设置相同的 `--tracker-token`（或环境变量 `EGO_TRACKER_TOKEN`）。
 
-## 2.4 MANUS 方案的 Windows 采集机
-
-- 依赖同 `requirements.txt`（Windows 上会装 `pyopenxr`，不装 `wuji-sdk`）。
-- **MANUS UDP 发送端需要自己下载**（受 MANUS SDK 许可约束，不随仓库分发）：从 MANUS 官网安装 MANUS Core 并下载 MANUS SDK，把 UDP 发送端 `SDKMinimalClient_Windows.exe` 和 `ManusSDK.dll` 放到 `capture/ManusClient/`（详细步骤和 UDP 数据包格式见该目录下的 `README.md`）。运行后把发送目标设成采集端的 IP 和端口（默认 `0.0.0.0:9000`）。
-- 采集卡在 Windows 上走 DirectShow。
-
-## 2.5 采集前自检清单
+### 2.1.4 采集前自检清单
 
 - [ ] 五个 tracker 在 SteamVR 里角色正确、全部在线
-- [ ] Wuji：`setup_wuji_gloves.sh --check` 通过，两只手套都能扫描到；已关闭 Wuji Studio（它会占用 SDK）；`wuji_calibration/calibration_bundle.zip` 是这副手套的
-- [ ] MANUS：UDP 发送端已启动，目标 IP / 端口正确
+- [ ] `setup_wuji_gloves.sh --check` 通过，两只手套都能扫描到；已关闭 Wuji Studio（它会占用 SDK）；`wuji_calibration/calibration_bundle.zip` 是这副手套的
+- [ ] 采集页面顶部显示"Tracker 已连接"，相机预览和 tracker 3D 位姿正常
+- [ ] 磁盘剩余空间充足
+
+## 2.2 MANUS 方案：单台 Windows 主机
+
+### 2.2.1 拓扑
+
+```mermaid
+flowchart LR
+    M[MANUS 手套] --> MC[MANUS Core + SDKMinimalClient_Windows.exe] -- UDP 9000 --> R
+    T[VIVE Ultimate Tracker ×5] -- SteamVR / OpenXR（本机） --> R
+    G[GoPro + Media Mod] -- HDMI → 采集卡 --> R[record_ego_manus.py]
+    R --> F[session 目录]
+```
+
+三路数据在同一台机器、同一个墙钟上打时间戳，落盘即对齐。MANUS 发送端发出 25 节点骨骼，采集端丢掉 4 个非拇指掌骨关节，以 **21 节点（与 Wuji / MediaPipe 一致）** 落盘。
+
+### 2.2.2 MANUS Core 与 SDKMinimalClient
+
+MANUS 手套的数据要经过两个程序才能到达采集程序：
+
+- **MANUS Core**：MANUS 官方的手套服务，负责连接手套、做手部标定并解算手指数据。从 [MANUS 官方资源页](https://docs.manus-meta.com/3.0.0/Resources/) 下载安装，按官方说明完成手套配对和标定。
+- **SDKMinimalClient**（`SDKMinimalClient_Windows.exe`）：用 MANUS SDK 源码编译好的 exe。它通过 SDK 从 MANUS Core 获取手套数据，再经 UDP 发给采集程序 `record_ego_manus.py`。**待确认**：将提供源码和已经编译好的 exe 文件。
+
+采集时先启动 MANUS Core 并确认手套在线，再启动 SDKMinimalClient，最后启动采集程序。
+
+### 2.2.3 SteamVR 与 tracker
+
+按第 2.1.2 节第 1–3 步安装 VIVE Hub 和 SteamVR、配对 tracker、设置 OpenXR Runtime 并分配角色。tracker 由本机直接读取，不需要单独的发送端环境。
+
+**tracker 帧率**：本机 tracker 按**主机时钟**采样（`--tracker-sample-fps`，默认 90）。headless SteamVR 的合成器只有约 15 Hz，但 `xrLocateSpace` 可以随时查询，所以采样不再受帧节拍限制；完整的 wait/begin/end 帧每 0.5 s 才走一次，用来维持会话。**修复前的旧 MANUS 录制 tracker 只有约 15 Hz**（第 6.5 节）。
+
+### 2.2.4 采集机设置
+
+- 依赖同 `requirements.txt`（Windows 上会装 `pyopenxr`，不装 `wuji-sdk`）。
+- MANUS Core 和 UDP 发送端按第 2.2.2 节准备好。
+- 采集卡在 Windows 上走 DirectShow。
+
+### 2.2.5 采集前自检清单
+
+- [ ] 五个 tracker 在 SteamVR 里角色正确、全部在线
+- [ ] UDP 发送端已启动，目标 IP / 端口正确
 - [ ] 采集页面顶部显示"Tracker 已连接"，相机预览和 tracker 3D 位姿正常
 - [ ] 磁盘剩余空间充足

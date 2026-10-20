@@ -19,7 +19,7 @@ capture/
 ├── wuji_calibration/               Wuji 手套标定 bundle 的导入 / 导出（bundle 本身不入库）
 ├── scripts/
 │   ├── setup_wuji_gloves.sh        Wuji 手套网卡配置与检查
-│   ├── wuji_calibration_tool.py    Wuji 手套标定、导出 / 导入标定 bundle（第 2.3 节）
+│   ├── wuji_calibration_tool.py    Wuji 手套标定、导出 / 导入标定 bundle（第 2.1.3 节）
 │   ├── start_tracker_sender.ps1    Windows 端 tracker 发送启动脚本
 │   ├── wuji_launch.sh              Wuji 方案一键启动（按本机修改路径）
 │   ├── rclone_linux.sh             上传数据（Linux）
@@ -41,7 +41,6 @@ capture/
 
 ```bash
 cd capture && source .venv/bin/activate
-export EGO_TRACKER_TOKEN="<两端相同的密钥>"
 python record_ego_wuji.py \
   --task-setting task_setting/example.json \
   --tracker-host 0.0.0.0 --tracker-port 8766 \
@@ -53,12 +52,12 @@ python record_ego_wuji.py \
 **再启动 Windows tracker 发送端**（在 `capture/` 目录下）：
 
 ```powershell
-.\scripts\start_tracker_sender.ps1 -LinuxHost <LINUX_IP> -Port 8766 -Token "<两端相同的密钥>"
+.\scripts\start_tracker_sender.ps1 -LinuxHost <LINUX_IP> -Port 8766
 # 或者
-python tracker_sender_windows.py --host <LINUX_IP> --port 8766 --token "<两端相同的密钥>"
+python tracker_sender_windows.py --host <LINUX_IP> --port 8766
 ```
 
-- `host / port / token` 两端必须一致。连接中断后 Windows 每 2 秒自动重连，Linux 端不会退出，视频和手套继续采集。
+- `host / port` 两端必须一致。连接中断后 Windows 每 2 秒自动重连，Linux 端不会退出，视频和手套继续采集。
 - Windows 只需要允许 Python 出站访问局域网，不用开入站端口。
 - **Windows 终端也能控制录制**（复用同一条已认证的 TCP 连接）：按 `r` 开始（倒计时用 Linux 端 `--record-countdown` 的设置，可用 `-Countdown 3` / `--countdown 3` 覆盖），按 `e` 结束并保存，按 `Esc` 只关闭快捷键监听、位姿继续发送。不需要时加 `-NoKeyboard` / `--no-keyboard`。
 
@@ -73,6 +72,28 @@ python record_ego_manus.py \
 tracker 由本机 `pyopenxr` 驱动；没有 tracker 时可以加 `--no-tracker`，相机和手套照常采集。
 
 ## 3.5 控制页面
+
+<div style="display:flex; gap:12px; align-items:flex-start" markdown>
+
+<div style="flex:1.985 1 0; min-width:0" markdown>
+
+![MANUS 方案的采集画面](../assets/img/interface.png)
+
+*MANUS 方案的采集画面*
+
+</div>
+
+<div style="flex:1.778 1 0; min-width:0" markdown>
+
+![Wuji 方案的采集画面](../assets/img/capture_session_viewer.jpg)
+
+*Wuji 方案的采集画面*
+
+</div>
+
+</div>
+
+*两种方案的页面布局相同：左侧为 GoPro 画面；右上为五个 tracker 的 3D 位姿与坐标；右下为左右手手套骨骼（Wuji 方案另有 24×31 触觉压力热力图）；底部为操作栏。*
 
 默认 `http://127.0.0.1:8770/`（要从别的电脑打开，加 `--host 0.0.0.0` 并放行端口）。页面上有相机监看、tracker 3D 位姿、手套状态、任务切换和录制按钮；键盘快捷键与终端相同：
 
@@ -106,14 +127,25 @@ Wuji 页面默认显示相机监看画面，监看流限制为 640×360（`--pre
 
 完整参数用 `python record_ego_wuji.py --help` / `python record_ego_manus.py --help` 查看。
 
-## 3.7 上传
+## 3.7 上传（可选）
 
-`scripts/rclone_linux.sh` / `scripts/rclone_win.bat` 是 `rclone copy --progress` 的薄封装：把脚本开头的 `LOCAL_PATH`（本地数据目录）和 `REMOTE_PATH`（远端路径）改成自己的，直接运行即可。需要过滤或上传后删除本地，改脚本里那一条 rclone 命令（`--include`、`move`）。
+数据默认只保存在本机 `--save-dir` 下，**上传不是必需步骤**。如果本机存储空间不够，可以自行开通云端对象存储（如阿里云 OSS、腾讯云 COS、AWS S3 等兼容 S3 的服务），在本机配置 rclone 后把数据传上去：
+
+1. 安装 [rclone](https://rclone.org/downloads/)。
+2. 运行 `rclone config`，按向导新建一个远端（remote），填入对象存储的类型、Endpoint、AccessKey / SecretKey，例如命名为 `myremote`。
+3. 验证：`rclone lsd myremote:<bucket>` 能列出内容即配置成功。
+
+配置好后有两种上传方式：
+
+- **采集程序内上传**：启动时加 `--rclone-remote myremote:<bucket>/ego_data`（或设置环境变量 `EGO_RCLONE_REMOTE`），控制页面的"上传数据"按钮即可用，执行 `rclone copy`，保留本地文件、跳过远端已有文件。同时，数据目录超过 `--storage-limit-gb`（默认 50 GB，`0` 表示禁用）时会自动执行 `rclone move`，只删除已确认传到远端的本地文件。rclone 不在 PATH 里时用 `--rclone-bin` 指定路径，配置文件不在默认位置时用 `--rclone-config` 指定。
+- **脚本上传**：`scripts/rclone_linux.sh` / `scripts/rclone_win.bat` 是 `rclone copy --progress` 的薄封装：把脚本开头的 `LOCAL_PATH`（本地数据目录）和 `REMOTE_PATH`（远端路径）改成自己的，直接运行即可。需要过滤或上传后删除本地，改脚本里那一条 rclone 命令（`--include`、`move`）。
+
+不配置 rclone 时，"上传数据"按钮为灰色，存储超限也不会自动清理，需要自己留意磁盘空间。
 
 ## 3.8 故障排查
 
 | 现象 | 先查 |
 |---|---|
-| Linux 一直显示"等待 Tracker" | Windows 的 `--host` 填的是 Linux 局域网 IP（不是 127.0.0.1）；两端端口和 token 一致；`Test-NetConnection <LINUX_IP> -Port 8766`；Linux 防火墙；两台机器在同一网段；先启动的是 Linux 端 |
+| Linux 一直显示"等待 Tracker" | Windows 的 `--host` 填的是 Linux 局域网 IP（不是 127.0.0.1）；两端端口一致；Linux 端没有设置 token（或两端 token 相同）；`Test-NetConnection <LINUX_IP> -Port 8766`；Linux 防火墙；两台机器在同一网段；先启动的是 Linux 端 |
 | Windows 没有 tracker 位姿 | 依赖装好；SteamVR 是当前 OpenXR Runtime；tracker 已配对并分配角色（不能是 Handheld object） |
 | Linux 找不到 Wuji 手套 | 已安装 `wuji-sdk` 并关闭其它占用 SDK 的程序；`setup_wuji_gloves.sh --check`；左右手序列号与当前 SDK 用户的标定 |

@@ -34,5 +34,5 @@
 10. **OOM 被杀的子进程没有 traceback**：`status: failed` 却没有错误信息时，先 `dmesg | tail` 查 `oom-kill`。
 11. **不要把结果写回采集目录**，统一写到 `$WORK/out`。
 12. **`_恢复` 录制质量系统性偏低**，其中一部分手腕 tracker 根本没记，挑数据时单独看。
-13. **旧 MANUS 录制的 tracker 只有约 15 Hz**（第 2.2 节，采集端已修复），30 Hz 导出里约一半是插值，看 `upsample_ratio`。
+13. **旧 MANUS 录制的 tracker 只有约 15 Hz**（第 2.2.3 节，采集端已修复），30 Hz 导出里约一半是插值，看 `upsample_ratio`。
 14. **profile 用错代价很大**：同一条录制，用错受试者的 profile 残差能从 60 mm 涨到 80 mm 以上。每个 batch 只放一位受试者、一次穿戴的录制。
