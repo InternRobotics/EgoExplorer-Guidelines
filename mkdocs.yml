@@ -1,8 +1,9 @@
 site_name: EgoExplorer Guidelines
 site_description: EgoExplorer capture and reconstruction guidelines (中文 / English)
 site_url: https://internrobotics.github.io/EgoExplorer-Guidelines/
-repo_url: https://github.com/InternRobotics/EgoExplorer-Guidelines
-repo_name: InternRobotics/EgoExplorer-Guidelines
+repo_url: https://github.com/InternRobotics/EgoExplorer
+repo_name: InternRobotics/EgoExplorer
+edit_uri: ""
 docs_dir: docs
 
 theme:
