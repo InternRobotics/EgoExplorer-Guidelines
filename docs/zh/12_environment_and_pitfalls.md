@@ -1,38 +1,46 @@
-# 12. 运行环境与常见坑
+# 12. 运行环境与常见问题
 
 [返回目录](../index.md) · [English](../en/12_environment_and_pitfalls.md)
 
-## 12.1 一台机器跑完整条管线
+## 12.1 单机运行
 
-| 阶段 | 设备 | 备注 |
+| 阶段 | 设备 | 说明 |
 |---|---|---|
-| 标定 `calibrate-subject` | CPU | 每份 profile 一次 |
-| 左右检查 / 修正、30 Hz 导出、审阅页、gallery | CPU | |
-| proposal + 投影、手部融合 | GPU 推荐 | CPU 可用，慢很多；hard 配置约为生产配置的 5 倍 |
-| 重训练 | GPU | |
+| 标定 `calibrate-subject` | CPU | 每次佩戴一次 |
+| 左右检查与修正、30 Hz 导出、校验页、总览页、LeRobot 转换 | CPU | |
+| 补全与投影、手部融合 | 推荐 GPU | CPU 也能跑，慢很多；严格配置约为默认配置的 5 倍耗时 |
+| 重新训练 | GPU | |
 
-- 推荐 Python 3.10 + 一块 NVIDIA GPU。Apple Silicon 上 profile 驱动的时序 IK 请用 `--device cpu`：在某些 PyTorch/MPS 组合上观察到过优化器发散。
-- 磁盘：每条 session 的产出（不含视频）约几十 MB；审阅页的 360p 视频副本另算。
-- 长任务放进 `tmux` / `screen` 或用 `nohup` 跑，所有阶段都支持 `--skip-existing` 断点续跑。
-- 环境注意：
-  - 往已装好的环境里加包用 `pip install --no-deps`，否则依赖解析可能把 torch 换掉。
-  - 同一个环境里不要同时留着 `nvidia-*-cu12` 和 `nvidia-*-cu13` 两套包：它们写同一批文件，安装顺序不对就会出现 `undefined symbol: ncclCommResume`。
-  - torch 2.x 在部分算子上会 JIT 编译 triton kernel，需要 Python 头文件（`Python.h`）；用独立打包的 Python 时把它的 `include/` 加进 `CPATH`。
-  - 多个进程共用 GPU 时，给每个进程设置独立的 `TRITON_CACHE_DIR` / `TORCHINDUCTOR_CACHE_DIR`。
+- 推荐 Python 3.10 加一块 NVIDIA GPU。Apple Silicon 上请用 `--device cpu`：在部分 PyTorch 版本组合下，MPS 上的优化会发散。
+- 磁盘：每条录制的处理结果（不含视频）为几十 MB，校验页的 360p 视频副本另算。
+- 耗时长的任务放在 `tmux`、`screen` 里或用 `nohup` 运行。所有阶段都支持跳过已完成的录制，中断后重跑即可。
+- 环境方面：
+    - 向已经装好的环境里加包时用 `pip install --no-deps`，否则依赖解析可能把 torch 换掉；
+    - 同一个环境里不要同时装 `nvidia-*-cu12` 和 `nvidia-*-cu13` 两套包，它们写入同一批文件，安装顺序不对就会报 `undefined symbol: ncclCommResume`；
+    - torch 2.x 的部分算子会即时编译 triton kernel，需要 Python 头文件（`Python.h`）。使用独立打包的 Python 时，把它的 `include/` 目录加进 `CPATH`；
+    - 多个进程共用 GPU 时，给每个进程单独设置 `TRITON_CACHE_DIR` 和 `TORCHINDUCTOR_CACHE_DIR`。
 
-## 12.2 贯穿性的坑
+## 12.2 容易出错的地方
 
-1. **采样率永远不统一。** 任何阶段都按时间戳重采样（`np.interp` / Slerp），不按索引对齐、不假设固定帧率。曾经 `contact_probability[:count]` 假设 contact 与轨迹等长——844 条里没有一条等长，低于 60 Hz 的被静默错位截断，高于 60 Hz 的（整批 Wuji）直接崩了 218 条。参考实现：`_load_contact_probability()`。
-2. **`status=ok` ≠ 质量好。** 按 `position_residual_m` 筛。
-3. **相对 vs 绝对时间戳**：SMPL-X 输出从 0 开始，其它流是墙钟，直接混用会差 17 亿秒。
-4. **零范数四元数仍标 valid**、个别 session 含 NaN：每个 tracker 独立重采样，只用 `valid & 有限值` 的样本。
-5. **非单调时间戳**：个别文件有两帧早了几毫秒，Slerp 会崩；管线已做修正。
-6. **目录深度可能不统一**：扫描一律 `rglob`，固定层数的 glob 会静默漏掉 session。
-7. **手套节点数**：21 点不等于 Wuji（新 MANUS 也是 21 点），按 `hand_skeleton.shape[1]` 判布局。
-8. **lr 0.008 会发散**，用 0.004；投影报 `FloatingPointError` 时也可能是关节限位里 acos 在 ±1 处的梯度问题（已修复），不是学习率问题。
-9. **躯干前倾上限默认 15° 会让弯腰类动作沉到地下**，v3 用 90°。
-10. **OOM 被杀的子进程没有 traceback**：`status: failed` 却没有错误信息时，先 `dmesg | tail` 查 `oom-kill`。
-11. **不要把结果写回采集目录**，统一写到 `$WORK/out`。
-12. **`_恢复` 录制质量系统性偏低**，其中一部分手腕 tracker 根本没记，挑数据时单独看。
-13. **旧 MANUS 录制的 tracker 只有约 15 Hz**（第 2.2.3 节，采集端已修复），30 Hz 导出里约一半是插值，看 `upsample_ratio`。
-14. **profile 用错代价很大**：同一条录制，用错受试者的 profile 残差能从 60 mm 涨到 80 mm 以上。每个 batch 只放一位受试者、一次穿戴的录制。
+**数据本身**
+
+1. **各路信号的采样率永远不一致。** 每个阶段都要按时间戳重采样（线性插值或 Slerp），不能按下标对齐，也不能假设固定帧率。曾经有一段代码假设脚部着地概率和轨迹等长，而 844 条录制里没有一条等长：低于 60 Hz 的录制被悄悄错位截断，高于 60 Hz 的（一整批 Wuji 录制，共 218 条）直接报错。正确的写法可参考 `_load_contact_probability()`。
+2. **相对时间与绝对时间。** SMPL-X 输出的时间从 0 开始，其它信号是系统时钟，直接混用会差出十几亿秒。
+3. **无效的四元数。** 有些帧的四元数长度为 0 却标为有效，少数录制含 NaN。每个 tracker 单独重采样，只用有效且数值有限的样本。
+4. **时间戳不单调。** 个别文件有两帧早了几毫秒，会让 Slerp 报错，管线已经处理。
+5. **目录层级不统一。** 一律用 `rglob` 递归查找，固定层级的 glob 会悄悄漏掉录制。
+6. **手套节点数。** 21 个节点不代表是 Wuji（现行 MANUS 数据也是 21 个节点），按 `hand_skeleton.shape[1]` 判断格式。
+7. **早期 MANUS 录制的 tracker 只有约 15 Hz**（第 2.2 节），它们的 30 Hz 导出里约一半是插值，看 `upsample_ratio`。
+8. **"恢复"类录制的质量整体偏低**，其中一部分手腕 tracker 根本没录到，挑选数据时单独检查。
+
+**处理参数**
+
+9. **学习率 0.008 会发散**，用 0.004。投影报 `FloatingPointError` 也可能来自关节限位里 acos 在 ±1 处的梯度问题（已修复），不一定是学习率。
+10. **躯干前倾上限设成 15° 会让弯腰类动作沉到地面以下**，默认配置用 90°。
+11. **用错标定代价很大。** 同一条录制换成别人的标定，残差能从约 60 mm 升到 80 mm 以上。每个 batch 只放同一个人、同一次佩戴的录制。
+
+**运行与排查**
+
+12. **状态为 ok 不代表结果好**，要按 `position_residual_m` 筛选。
+13. **进程因内存不足被杀时没有报错信息。** 状态为失败却没有原因时，先用 `dmesg | tail` 查有没有 `oom-kill`。
+14. **不要把结果写回采集目录**，统一写到 `$WORK/out`。

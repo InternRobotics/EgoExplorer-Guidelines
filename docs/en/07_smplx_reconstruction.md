@@ -1,99 +1,99 @@
-# 7. Raw data → SMPL-X
+# 7. From raw data to SMPL-X
 
 [Back to contents](../index.md#english) · [中文](../zh/07_smplx_reconstruction.md)
 
-This chapter covers body reconstruction (Complete + Constrain), hand fusion, and two ways to run it: **with our checkpoint** (7.2–7.6) or **after retraining the proposal network** (7.7). Everything runs on one machine. An NVIDIA GPU is best; without one it still runs (`--device cpu`), only much slower.
-
-## 7.1 What reconstruction does
+This chapter turns raw recordings into SMPL-X with fingers: 7.1–7.6 use our trained model, and 7.7 explains how to retrain it. Everything runs on one machine. An NVIDIA GPU is best; a CPU also works (`--device cpu`), only much slower.
 
 <video src="../../assets/video/reconstruction.mp4" controls muted loop playsinline width="100%"></video>
 
-*One real recording (sandwich making, 30 Hz): the five trailing gizmos are the tracker poses, the body is the solved SMPL-X, and the colour on the hands is the glove's own per-region pressure.*
+*One real recording (sandwich making, 30 Hz): the five trailing axes are the tracker poses, the body is the solved SMPL-X, and the colour on the hands is the pressure measured by the gloves in each region.*
 
-Each session goes through three stages, each written to disk so it can be inspected on its own:
+## 7.1 Three stages
 
-| Stage | What it does | Outputs (`$WORK/out/<stage>/<sid>/`) |
+Each recording passes through three stages, and each stage's result is written to disk so it can be checked on its own.
+
+| Stage | What it does | Output (`$WORK/out/<stage>/<recording>/`) |
 |---|---|---|
-| reference | Uses the subject profile to turn the five tracker poses into joint anchors (mounting removed) | `references/` |
-| proposal (Complete) | The five-tracker AvatarPoser (official three-tracker model extended to 90 channels) produces a first whole-body trajectory on a 60 Hz grid, supplying the 17 joints no tracker sees | `proposals/` (includes `contact_probability.npy`: **left/right foot-contact probability**, unrelated to glove touch) |
-| projection (Constrain) | Differentiable SMPL-X projection optimising three layers jointly: L1 skeleton (tracker position/rotation + joint limits), L2 self-surface (no interpenetration), L3 floor (no posed vertex below the floor) | `projected/`: `smplx_profile_driven.npz/.json`, `tracker_diagnostics.npz`, `projection_diagnostics.json`, `pipeline_metadata.json` |
+| reference | Uses the calibration to turn the five tracker poses into joint positions (mounting removed) | `references/` |
+| proposal (complete) | A five-tracker AvatarPoser gives a whole-body trajectory at 60 Hz, filling in the 17 joints no tracker sees | `proposals/`; its `contact_probability.npy` is the probability that each foot touches the ground, unrelated to glove touch |
+| projection (constrain) | Differentiable optimisation of SMPL-X under three sets of constraints: L1 skeleton (tracker positions and rotations, joint limits), L2 body surface (no self-intersection), L3 floor (no vertex below the floor) | `projected/`: `smplx_profile_driven.npz` and `.json`, `tracker_diagnostics.npz`, `projection_diagnostics.json`, `pipeline_metadata.json` |
 
 ## 7.2 Environment and models
 
-Toolkit code: `src/five_tracker_smplx/` (library) + `scripts/` (stage scripts).
-
 ```bash
 conda create -n egoexplorer python=3.10 -y && conda activate egoexplorer
-pip install torch                                  # pick the build for your CUDA version
-pip install -e ".[fit,test,dataset,visualize]"     # from the toolkit root
-pip install --no-deps human_body_prior              # VPoser; --no-deps keeps it from touching the installed torch
+pip install torch                                # pick the build for your CUDA version
+pip install -e ".[all]"                          # from the toolkit root
 ```
 
-Model files (under the toolkit root):
+Model files go under the toolkit root:
 
 | File | Source |
 |---|---|
-| `models/smplx/SMPLX_NEUTRAL.npz` | [SMPL-X website](https://smpl-x.is.tue.mpg.de/) (registration required; respect its licence) |
-| `models/vposer/V02_05/` | VPoser ([human_body_prior](https://github.com/nghorbani/human_body_prior); model downloaded from the SMPL-X website) |
-| `ckpt/avatarposer_five_v3/model.pt` | Our v3 proposal network (in the repository) |
-| `assets/calibration_motion_vposer_mano.npz` | 01–17 calibration reference-motion cache (in the repository; or rebuild with `scripts/render_calibration_protocol.py --rebuild-motion-cache`) |
-| `outputs/external_models/avatarposer.pth` | [Official AvatarPoser](https://github.com/eth-siplab/AvatarPoser), only needed for retraining |
+| `models/smplx/SMPLX_NEUTRAL.npz` | [SMPL-X website](https://smpl-x.is.tue.mpg.de/); registration and licence required |
+| `models/vposer/V02_05/` | VPoser, also from the SMPL-X website |
+| `ckpt/avatarposer_five/model.pt` | The completion network, included in the repository |
+| `assets/calibration_motion_vposer_mano.npz` | Calibration reference motion, included; can be regenerated with `scripts/render_calibration_protocol.py --rebuild-motion-cache` |
+| `outputs/external_models/avatarposer.pth` | [Official AvatarPoser](https://github.com/eth-siplab/AvatarPoser) weights, only needed for retraining |
 
-## 7.3 Work-folder convention
+## 7.3 Work folder
 
-All commands below use these variables and run from the toolkit root:
+All commands below run from the toolkit root and use these variables:
 
 ```bash
-export WORK=/path/to/egoexplorer_work        # work folder
-export CKPT=ckpt/avatarposer_five_v3/model.pt
+export WORK=/path/to/egoexplorer_work
+export CKPT=ckpt/avatarposer_five/model.pt
 export PYTHONPATH=src:scripts
 ```
 
 ```text
 $WORK/
 ├── ego_data_sync/<batch>/<session>/         raw recordings (the five files of chapter 6)
-├── ego_data_lr_fixed/<batch>/<session>/     L/R-corrected copies (written automatically, chapter 9)
-├── input/ego_data_sync/<batch>/<session>/   merged input view: corrected copy where one exists, otherwise raw
-├── profiles/<batch>.json                    subject profile of that batch (chapter 5; one per subject and donning)
-└── out/                                     references / proposals / projected / unified_30hz / review / gallery
+├── ego_data_lr_fixed/<batch>/<session>/     L/R-corrected copies (written by 9.2)
+├── input/ego_data_sync/<batch>/<session>/   merged input: the corrected copy where there is one, otherwise the original
+├── profiles/<batch>.json                    calibration of this group (chapter 5)
+└── out/                                     stage outputs, 30 Hz export, review pages, gallery
 ```
 
-- **`<batch>` = recordings of one subject in one donning**, all processed with the same profile. A different subject, or the same subject after remounting, goes into a different batch.
-- Keep the folder names `ego_data_sync` and `ego_data_lr_fixed`: the check and fix scripts read the batch name from them.
+- **A batch is a group of recordings from one wearer in one donning**, all processed with one calibration. Recordings from another wearer or a new donning go into a new batch.
+- Keep the folder names `ego_data_sync` and `ego_data_lr_fixed`; the check and fix scripts use them to identify batches.
 - Never write results back into the raw recording folders.
 
-## 7.4 v3 production config
+## 7.4 Default configuration
+
+The defaults of `scripts/run_five_tracker_pipeline.py` are the following and normally need no change:
 
 | Item | Value |
 |---|---|
-| Proposal network | v3 `model.pt` |
+| Completion network | `ckpt/avatarposer_five/model.pt` |
 | Projector | `scripts/project_sparse_tracker_baseline_l2.py` |
-| L1 joint limits | knee 125° / elbow 140° / **torso lean 90°** / knee hyperextension weight 100 / pelvis roll weight 100 |
-| L2 surface | `--surface-mode signed_top8 --mesh-collision-weight 3000 --mesh-collision-radius 0.018 --mesh-sample-count 256` |
+| L1 joint limits | knee 125°, elbow 140°, torso lean 90°, knee hyperextension weight 100, pelvis roll weight 100 |
+| L2 body surface | `signed_top8`, weight 3000, radius 1.8 cm, 256 samples |
 | L3 floor | penetration weight 50 |
-| Optimisation | 60 Adam iterations, **lr 0.004**, chunk 256 |
+| Optimisation | 60 Adam steps, learning rate 0.004, 256 frames per chunk |
 
-Two values you must know the reason for:
+Two of these come from problems we ran into:
 
-- **lr must be 0.004** (not the script default 0.008): 0.008 diverges into `FloatingPointError: non-finite SMPL-X parameters` on 20–35% of real sessions. If a session diverges, rerun it at half the learning rate.
-- **torso lean limit 90°** (not the default 15°): 15° makes bends, lunges and sit-downs sink through the floor.
+- **Learning rate 0.004.** At 0.008, about 20–35% of real recordings diverge with `FloatingPointError: non-finite SMPL-X parameters`.
+- **Torso lean limit 90°.** With a 15° limit, bending, lunging and sitting make the whole body sink below the floor.
 
 ## 7.5 Running it
 
-**One command** (the toolkit's single-machine driver runs the steps below plus the export, review pages and gallery of chapters 8–9, skipping finished sessions at every step):
+### One command
 
 ```bash
-WORK=/path/to/egoexplorer_work bash scripts/run_pipeline.sh all            # every batch
-WORK=/path/to/egoexplorer_work bash scripts/run_pipeline.sh project <batch> # one step, one batch
-WORK=/path/to/egoexplorer_work bash scripts/run_pipeline.sh status
+WORK=/path/to/egoexplorer_work bash scripts/run_pipeline.sh all             # every batch
+WORK=/path/to/egoexplorer_work bash scripts/run_pipeline.sh project <batch>  # one step, one batch
+WORK=/path/to/egoexplorer_work bash scripts/run_pipeline.sh status          # progress per stage
 ```
 
-A diverged projection is retried once at lr 0.002. The individual steps are below.
+It runs the side checks, the side fixes, the merged input, projection and hand fusion, then the export, review pages and gallery of chapters 8 and 9. Every step skips finished recordings, so an interrupted run simply resumes. A recording whose projection diverges is retried once at learning rate 0.002.
 
+### Step by step
 
-**Step 1: left/right checks and fixes** (9.1–9.2). Do this first so projection reads the corrected input and nothing has to be rerun.
+**Step 1: side checks and fixes** (9.1–9.2). Doing this first means projection reads the corrected input and nothing has to be redone.
 
-**Step 2: build the merged input view.** Link each file separately (`Path.rglob` does not descend into symlinked folders, so linking whole session folders does not work):
+**Step 2: merged input.** Link each file separately (`Path.rglob` does not enter linked folders, so linking whole recording folders does not work):
 
 ```bash
 for d in "$WORK"/ego_data_sync/*/*/; do
@@ -104,71 +104,67 @@ for d in "$WORK"/ego_data_sync/*/*/; do
 done
 ```
 
-**Step 3: projection**, once per batch with that batch's profile:
+**Step 3: projection**, once per batch with its own calibration:
 
 ```bash
-B=<batch>; PROFILE=$WORK/profiles/$B.json
+B=<batch>
 python scripts/run_five_tracker_pipeline.py \
-  --input-root $WORK/input/ego_data_sync/$B --subject-profile $PROFILE --checkpoint $CKPT \
-  --output-root $WORK/out --body-model-path models/smplx --device cuda --workers 1 \
-  --iterations 60 --learning-rate 0.004 --chunk-size 256 \
-  --torso-lean-limit-deg 90 --knee-hyperextension-weight 100 --pelvis-roll-weight 100 \
-  --projector-script scripts/project_sparse_tracker_baseline_l2.py --surface-mode signed_top8 \
-  --mesh-collision-weight 3000 --mesh-collision-radius 0.018 --mesh-sample-count 256 \
-  --skip-existing
+  --input-root $WORK/input/ego_data_sync/$B --subject-profile $WORK/profiles/$B.json \
+  --checkpoint $CKPT --output-root $WORK/out \
+  --body-model-path models/smplx --device cuda --workers 1 --skip-existing
 ```
 
-- Add `--session <name>` (repeatable) to run specific sessions only.
-- `--skip-existing` resumes an interrupted run; one failed session does not stop the batch, and failures are listed in `$WORK/out/pipeline_report.json`.
-- `--workers` is the number of sessions in parallel; keep it at 1 if memory is tight. An OOM-killed process leaves no traceback: for "failed" without an error message, check `dmesg | tail` first.
-- Timing: one 3000-frame session takes about 25 s on an H200, several minutes on a CPU.
+- `--session <recording>` (repeatable) processes only those recordings.
+- A failed recording does not stop the batch; failures are listed in `$WORK/out/pipeline_report.json`.
+- `--workers` is the number of recordings processed at once; keep it at 1 when memory is tight. A process killed for lack of memory leaves no error message: if a recording failed without a reason, check `dmesg | tail` first.
+- Timing: a 3000-frame recording takes about 25 seconds on an H200 and a few minutes on a CPU.
 
-**`status=ok` does not mean good quality.** Filter on `position_residual_m` in `tracker_diagnostics.npz`: good sessions sit at 3–12 mm, but some sessions marked ok are at tens to hundreds of millimetres.
+**Look at residuals, not just status.** "ok" does not mean the result is good. Filter on `position_residual_m` in `tracker_diagnostics.npz`: good recordings sit at 3–12 mm, while some recordings marked ok are at tens to hundreds of millimetres.
 
-**When you need "100% tracker adherence"** (dynamic motion, calibration recordings, teacher labels), use the hard config: 300 iterations, lr 0.01, `--position-weight 10000 --rotation-weight 60 --pose-prior-weight 0.5`, everything else unchanged. Residuals drop to 1–4 mm per action window at about 5× the production cost. Report residuals per action window as p99/max, not medians (dynamic frames are only ~5% of a recording).
+**When the body must follow the trackers closely** (large movements, calibration recordings, training labels), use the strict configuration: 300 steps, learning rate 0.01, `--position-weight 10000 --rotation-weight 60 --pose-prior-weight 0.5`, everything else unchanged. Residuals per motion segment drop to 1–4 mm, at about 5× the run time. Dynamic motion is only about 5% of a recording, so report residuals per motion segment as p99 and maximum; the median hides the problem.
 
 ## 7.6 Hand fusion
 
-The glove skeleton is fitted to MANO (SMPL-X's hands) and attached to the solved arm through the calibrated wrist transform, so fingers and touch land on the same body and the same clock. MANUS 25-node and Wuji / new MANUS 21-node data share one path (the mapping is picked by node count).
+The glove skeleton is first fitted to MANO (SMPL-X's hand model) and then attached to the solved arm through the calibrated wrist mounting, so fingers and touch end up on the same person and the same timeline as the body. MANUS and Wuji follow the same path; the mapping is chosen by node count.
 
 ```bash
 python -m five_tracker_smplx.cli fuse-manus-batch \
-  --input-root $WORK/input/ego_data_sync/$B --body-output-dir $WORK/out/projected \
-  --subject-profile $PROFILE --body-model-path models/smplx --device cuda \
+  --input-root $WORK/input/ego_data_sync/$B/<session> --body-output-dir $WORK/out/projected \
+  --subject-profile $WORK/profiles/$B.json --body-model-path models/smplx --device cuda \
   --max-hand-frames 480 --iterations 60 --no-protocol --no-viewer
 ```
 
-Output `projected/<sid>/smplx_with_manus_hands.npz`: the body is **identical** to before fusion (`global_orient` etc. unchanged); only `left_hand_pose` / `right_hand_pose` (45 each, MANO 15-joint axis-angle) are filled in. Reference accuracy: about 8–12 mm joint RMS.
+The output is `projected/<recording>/smplx_with_manus_hands.npz`. The body is identical to before fusion; only `left_hand_pose` and `right_hand_pose` are added (45 values each, axis-angle of the 15 MANO joints). Joint fitting error is about 8–12 mm.
 
-- Glove side comes from `slot` in `session.json` (already fixed in the corrected copies).
-- Wuji skeletons have no global hand orientation, so hand orientation comes entirely from the wrist tracker. That is by design.
-- Sessions without glove data export `hand_pose_source = none_neutral_zero` (a neutral zero-pose placeholder, **not a measurement**).
+- The glove side comes from `slot` in `session.json`, already corrected in the corrected copies.
+- Wuji skeletons carry no overall hand orientation, so the hand's orientation comes entirely from the wrist tracker.
+- Recordings without glove data are exported with `hand_pose_source` set to `none_neutral_zero`: the hands are a neutral placeholder, not a measurement.
 
-## 7.7 Retraining the proposal network
+## 7.7 Retraining the completion network
 
-**When it is needed:** for a motion type absent from training, the proposal returns a standing pose (e.g. knees and hips barely bent during leg raises or squats), and 60 projection steps cannot recover more than ~15° (Adam's per-parameter travel is about iters × lr = 0.24 rad). **A new mounting or a new subject does not need retraining**; calibrate a new profile instead.
+**When it is needed.** For a kind of motion absent from training, the completion network returns something close to standing, for example knees and hips barely bent during leg raises or squats. The 60 projection steps cannot recover more than about 15° (each parameter moves at most about steps × learning rate = 0.24 rad), so the network has to be retrained. A new wearer or a new donning only needs a new calibration, not retraining.
 
-**Production recipe (follow it exactly):**
+**How to train:**
 
-1. **Start from the official AvatarPoser** `outputs/external_models/avatarposer.pth`. The trainer widens its 54 input channels to 90 (ankle channels zero-initialised). **Do not** warm-start from an earlier five-tracker `model.pt`.
-2. **Synthetic data** (`--synthetic-root`, files named `sequence_*.npz` with keys `tracker_positions/rotations, global_orient, body_pose, contact`):
-   - VPoser samples: `scripts/generate_sparse_tracker_synthetic.py --profile <profile> --sequences 24 --frames 240`
-   - Guide poses (the B01–B10 whole-body library) converted with the target subject's profile (static poses → stand–pose–hold–stand at two speeds; dynamic → resampled at two durations)
-   - AMASS: `scripts/generate_amass_five_tracker_synthetic.py --amass <HDM05/CMU/BMLrub …> --profile <profile> --output <dir> --frames 240` (60 Hz, root + 21 body joints only)
-3. **Teacher labels for natural recordings** (`--natural-root`, one `<sid>/smplx_profile_driven.{npz,json}` each; the npz must carry `attachment_position/rotation`, the json `source` and `ground_y_m`):
-   - Label with the **hard projection** (300 it, lr 0.01, pos 10000 / rot 60 / prior 0.5, torso lean 90°);
-   - add a **per-frame pose-reference prior** to pick the right IK branch: `scripts/build_pose_reference.py` builds the reference (calibration recordings: the 01–17 protocol pose library + stage alignment; test recordings: the B01–B10 guides), and the projector takes `--pose-reference <npz> --pose-reference-weight 30` (applied to hips, spine, knees, ankles and feet only; arms stay tracker-driven). Without it, squat, leg-raise and lunge labels pick among IK branches at random.
-4. **Train**:
-   ```bash
-   python scripts/train_avatarposer_five_tracker.py \
-     --checkpoint outputs/external_models/avatarposer.pth \
-     --synthetic-root <synthetic dir> --natural-root <teacher-label dir> --holdout-token "" \
-     --max-natural-windows $((2000 * <number of natural files>)) --hard-negative-ratio 0.3 \
-     --epochs 3 --batch-size 32 --learning-rate 1e-4 --device cuda --output <output dir>
-   ```
-   Do not pass `--mount-reference` when natural files come from different profiles (each file then uses its own mounts).
-5. **Evaluate** on a held-out test set with the **production projection** (60 steps), looking at per-tracker residuals and joint angles per action window; then rerun an earlier session as a regression check. Reference result: after retraining, mean test residuals went from 35/25/20/30/53 mm (head / left hand / right hand / left foot / right foot) to 8/2/2/3/5 mm.
+1. **Start from the official AvatarPoser.** Initialise from `outputs/external_models/avatarposer.pth`; the training script widens the input from 54 to 90 channels and initialises the new ankle channels to zero. Do not continue from an already trained five-tracker model.
+2. **Synthetic data** (`--synthetic-root`, files named `sequence_*.npz`):
+    - random VPoser poses: `scripts/generate_sparse_tracker_synthetic.py --profile <calibration> --sequences 24 --frames 240 --output <folder>`;
+    - guide poses: the B01–B10 whole-body motions in `assets/guides/`, converted to synthetic sequences with the target wearer's calibration (static poses become stand–pose–hold–stand, dynamic motions are resampled at two durations; the conversion script is not yet in the toolkit);
+    - AMASS: `scripts/generate_amass_five_tracker_synthetic.py --amass <HDM05/CMU/BMLrub …> --profile <calibration> --output <folder> --frames 240` (60 Hz, root and 21 body joints only).
+3. **Labels for real recordings** (`--natural-root`, one `<recording>/smplx_profile_driven.{npz,json}` each):
+    - project them with the strict configuration (7.5) and a torso lean limit of 90°;
+    - add a per-frame reference-pose prior so the solve lands on the right pose. `scripts/build_pose_reference.py` builds the reference: calibration recordings use the 01–17 protocol poses (`assets/protocol_body_poses.json`) with the stage alignment, test recordings use the B01–B10 guide poses. Pass `--pose-reference <npz> --pose-reference-weight 30` to the projector; it applies only to hips, spine, knees, ankles and feet, and the arms still follow the trackers. Without it, labels for squats, leg raises and lunges jump between several possible poses.
+4. **Train:**
+    ```bash
+    python scripts/train_avatarposer_five_tracker.py \
+      --checkpoint outputs/external_models/avatarposer.pth \
+      --synthetic-root <synthetic folder> --natural-root <label folder> --holdout-token "" \
+      --max-natural-windows $((2000 * <number of real recordings>)) --hard-negative-ratio 0.3 \
+      --epochs 3 --batch-size 32 --learning-rate 1e-4 --device cuda --output <output folder>
+    ```
+    When real recordings come from different calibrations, do not pass `--mount-reference`; each recording then uses its own mounting.
+5. **Evaluate.** Run the default projection on held-out test recordings and compare per-tracker residuals and joint angles per motion segment, then check a few older recordings to make sure nothing got worse. For reference, retraining brought the mean test residuals from 35 / 25 / 20 / 30 / 53 mm (head, left hand, right hand, left foot, right foot) down to 8 / 2 / 2 / 3 / 5 mm.
 
-The v3 network was trained this way: synthetic = 24 VPoser sequences + 20 guide-pose sequences + AMASS (HDM05/CMU/BMLrub); natural = 35 recordings with reference-prior labels + 17 recordings picked per motion category with hard labels.
+Our model was trained this way, on 24 VPoser sequences, 20 guide-pose sequences and AMASS (HDM05, CMU, BMLrub) as synthetic data, plus 35 recordings with reference-pose priors and 17 recordings chosen per motion type as real data.
 
-**A new motion type needs two things**: a reference pose for each action, and stage / active-window annotation. Without them the projector's teacher label is a coin flip between IK branches.
+**A new kind of motion needs two things**: a reference pose for each action and the start and end of each motion segment. Without them, the projected labels pick among several possible poses at random.

@@ -2,76 +2,75 @@
 
 [Back to contents](../index.md#english) · [中文](../zh/06_raw_data_format.md)
 
-Each session is a folder `session_<date>_<time>_<task>/` with five files:
+Each recording is a folder `session_<date>_<time>_<task>/` with five files:
 
-```text
-<session>.mp4            GoPro video (H.264, PTS from grab time, VFR)
-<session>.video.npz      per-frame host timestamps and encoder statistics
-<session>.tracker.npz    global 6-DoF poses of the five trackers
-<session>.npz            both gloves (skeleton; Wuji adds touch)
-<session>.session.json   device and clock metadata
-```
+| File | Contents |
+|---|---|
+| `<session>.mp4` | GoPro video, H.264, variable frame rate; each frame's display time is its grab time |
+| `<session>.video.npz` | Grab time of each frame and encoder statistics |
+| `<session>.tracker.npz` | Global poses of the five trackers |
+| `<session>.npz` | Both glove skeletons; touch on Wuji |
+| `<session>.session.json` | Device and clock information |
 
-Reconstruction only reads the tracker, glove and video-timestamp files; the mp4 is only needed for review pages and the LeRobot conversion.
+Reconstruction only reads the tracker, glove and video-timestamp files; the mp4 is needed only for review pages and the LeRobot conversion.
 
-All timestamps are in **microseconds**; `t_host_us` is the host wall clock (`time.time()`) and is the shared master timeline.
+All timestamps are in **microseconds**. `t_host_us` is the capture host's system clock (`time.time()`), and all streams are aligned on it.
 
-## 6.1 `*.tracker.npz`
+## 6.1 Trackers: `*.tracker.npz`
 
-The key prefix is always `tracker_0__pose`:
+Keys start with `tracker_0__pose`; `<role>` is one of the five roles in 1.3.
 
 | Key | Shape | Meaning |
 |---|---|---|
-| `tracker_0__pose__t_host_us` | (T,) int64 | Host wall clock (already converted to the Linux clock on the Wuji rig) |
-| `tracker_0__pose__t_us` / `__t_dev_us` | (T,) int64 | Device-preferred time / device time |
-| `tracker_0__pose__t_source_host_us` | (T,) int64 | Wuji rig only: original Windows wall clock |
-| `tracker_0__pose.<role>.position` | (T, 3) float32 | Metres, tracker world frame (+Y up) |
-| `tracker_0__pose.<role>.orientation` | (T, 4) float32 | **Quaternion in `w, x, y, z` order**; may be NaN on invalid frames |
+| `tracker_0__pose__t_host_us` | (T,) int64 | Capture host time (converted to the Linux clock on the Wuji rig) |
+| `tracker_0__pose__t_us`, `__t_dev_us` | (T,) int64 | Device-preferred timestamp, device time (trackers have no device clock: −1) |
+| `tracker_0__pose__t_source_host_us` | (T,) int64 | Wuji rig only: original Windows time |
+| `tracker_0__pose.<role>.position` | (T, 3) float32 | Position in metres, world frame, +Y up |
+| `tracker_0__pose.<role>.orientation` | (T, 4) float32 | Quaternion, **order w, x, y, z**; may be NaN on invalid frames |
 | `tracker_0__pose.<role>.valid` | (T,) bool | Whether the sample is valid |
-| `meta` | scalar string | JSON: roles, frames, etc. |
+| `meta` | string | JSON with roles, frame count, etc. |
 
-`<role>` ∈ `camera, left_wrist, right_wrist, left_ankle, right_ankle`.
+!!! warning "Quaternion order"
+    Raw tracker files are **wxyz**; glove skeletons, calibration files and the released LeRobot data are **xyzw**. Read raw files with the library's `raw_trackers.read_raw_tracker_npz()`, which converts the order. Some frames also have zero-length quaternions while marked valid, and a few recordings contain NaN; use only samples that are valid and finite.
 
-> ⚠️ Raw quaternions are **wxyz**; released LeRobot data and glove skeletons are **xyzw**. Read raw files with the library's `raw_trackers.read_raw_tracker_npz()`, which reorders them. Also, some frames carry zero-norm quaternions while still marked valid, and a few sessions contain NaN; filter on `valid & finite`.
+## 6.2 Gloves: `*.npz`
 
-## 6.2 `*.npz` (gloves)
+Keys follow `{device}__{stream}__t_us`, `__t_dev_us`, `__t_host_us` and `{device}__{stream}`. `glove_0` and `glove_1` are the two gloves; **which one is the left hand is given by `slot` in `session.json`**, not by the name.
 
-Keys follow `{device}__{stream}__t_us / __t_dev_us / __t_host_us` and `{device}__{stream}`. `glove_0` / `glove_1` are the two hands; **which one is left is given by `slot` in `session.json`** (do not assume glove_0 = left).
-
-| Key | Wuji | MANUS (new, 21-node) | MANUS (old, 25-node) |
+| Key | Wuji | MANUS (current, 21 nodes) | MANUS (older, 25 nodes) |
 |---|---|---|---|
-| `glove_*__hand_skeleton` | (T, 21, 7) | (T, 21, 7) (reduced from 25 nodes by the recorder) | (T, 25, 7) |
+| `glove_*__hand_skeleton` | (T, 21, 7) | (T, 21, 7), reduced from 25 nodes at capture | (T, 25, 7) |
 | `glove_*__tactile` | (T, 744) | — | — |
-| `glove_*__hand_joint_angles.angles` / `.conf` | — | (T, 20) / (T, 5) | present |
-| Rate | ~120 Hz | skeleton ~220 Hz, angles ~200 Hz | ~22 Hz |
+| `glove_*__hand_joint_angles.angles`, `.conf` | — | (T, 20), (T, 5) | present |
+| Rate | about 120 Hz | skeleton about 220 Hz, angles about 200 Hz | about 22 Hz |
 
-- Each `hand_skeleton` row is `[px, py, pz, qx, qy, qz, qw]` (position + **xyzw** quaternion); node 0 is the wrist.
-- **The 21-node layout is MediaPipe**, parents `[-1,0,1,2,3,0,5,6,7,0,9,10,11,0,13,14,15,0,17,18,19]`; the 25-node MANUS layout adds four non-thumb metacarpal nodes. Loaders decide the layout **by node count**, not by device type (new MANUS exports are also 21-node).
-- Wuji node 0 always has an identity quaternion and **carries no global hand orientation**; hand orientation can only come from the wrist tracker. MANUS node 0 does carry a world orientation.
-- Wuji touch: 744 = a 24×31 matrix flattened row-major; `-1` marks invalid (unwired) taxels, about 28%. Raw touch values have a non-zero baseline.
-- `meta`: JSON with `device_type` (`wuji_glove` / `manus_glove`), each hand's `sn` and `slot`, per-stream frame counts and durations, `host_minus_dev_us`.
+- Each `hand_skeleton` row is `[px, py, pz, qx, qy, qz, qw]`: position plus an **xyzw** quaternion. Node 0 is the wrist.
+- The 21-node layout is MediaPipe's, with parents `[-1,0,1,2,3,0,5,6,7,0,9,10,11,0,13,14,15,0,17,18,19]`. The older 25-node layout adds four non-thumb metacarpal nodes. Decide the layout from the node count, not the device type.
+- On Wuji gloves node 0 always has an identity rotation and carries no overall hand orientation, so the hand's orientation can only come from the wrist tracker. MANUS node 0 does carry orientation.
+- Wuji touch: 744 = 24 × 31, flattened row by row; `-1` marks an invalid taxel, about 28% of them. Raw touch values have a baseline and are not zero without contact.
+- `meta` is JSON with `device_type` (`wuji_glove` or `manus_glove`), each glove's serial `sn` and `slot`, and per-stream frame counts and durations.
 
-## 6.3 `*.video.npz`
+## 6.3 Video timestamps: `*.video.npz`
 
 | Key | Meaning |
 |---|---|
-| `t_host_us` | (N,) host wall clock at each frame grab |
-| `fps` / `width` / `height` | **Nominal** values; compute the real rate from `t_host_us` (Wuji rig: nominal 60, measured ~30) |
+| `t_host_us` | (N,) grab time of each frame |
+| `fps`, `width`, `height` | Nominal values. Compute the real frame rate from `t_host_us`: nominal 60 on the Wuji rig, about 30 measured |
 | `timestamp_mode` | `capture-vfr` |
 | `captured_frames`, `queue_dropped_frames`, `read_failures`, `writer_failures` | Capture statistics; all but the frame count should be 0 |
 
-## 6.4 `*.session.json`
+## 6.4 Device information: `*.session.json`
 
-Key fields: `base`, `task_name`, `glove_type` (`wuji`/`manus`), `clock` (clock description), `video{…}`, `gloves[{device_name, sn, slot}]`, `tracker{roles, transport, source_clock, host_clock, dropped_frames, record_fps_limit}`, each stream's `t_host_us_range`, and `overlap_s` (how long all streams overlap).
+Main fields: `base` (recording name), `task_name`, `glove_type` (`wuji` or `manus`), `clock` (clock description), `video`, `gloves` (each glove's `device_name`, `sn`, `slot`), `tracker` (roles, transport, source and host clocks, dropped frames, write cap), each stream's `t_host_us_range`, and `overlap_s` (how long all streams overlap).
 
-Left/right correction (chapter 9) only rewrites this file in the corrected copy (swapping `slot`) and records the evidence; originals are never touched.
+Left/right correction (9.2) only rewrites this file in the corrected copy; the original stays untouched.
 
-## 6.5 Measured rates (know these before writing code)
+## 6.5 Measured rates
 
 | Rig | Video | Gloves | Trackers |
 |---|---|---|---|
-| MANUS (older batches) | ~52–60 Hz | ~22 Hz (25-node) / ~220 Hz (21-node) | **~15 Hz** (before the recorder fix) |
-| MANUS (current recorder) | ~60 Hz | ~220 Hz | host-clock sampling, 90 Hz by default |
-| Wuji | **~30 Hz** (nominal 60) | ~120 Hz | ~65 Hz |
+| MANUS (early recordings) | 52–60 Hz | about 22 Hz (25 nodes) / about 220 Hz (21 nodes) | **about 15 Hz** |
+| MANUS (current capture program) | about 60 Hz | about 220 Hz | 90 Hz by default |
+| Wuji | **about 30 Hz** (nominal 60) | about 120 Hz | about 65 Hz |
 
-Three rates in one recording, and a 4× tracker difference across rigs. Resample by timestamp at every stage (`np.interp` / Slerp); **never align by index and never assume a fixed rate**.
+Streams within one recording run at different rates, and tracker rates differ by more than 4× between rigs. Always resample by timestamp (linear interpolation for positions, Slerp for rotations); never align by array index and never assume a fixed frame rate.

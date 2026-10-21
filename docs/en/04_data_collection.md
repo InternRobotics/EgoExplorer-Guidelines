@@ -1,66 +1,59 @@
-# 4. Collecting data
+# 4. Capture workflow
 
 [Back to contents](../index.md#english) · [中文](../zh/04_data_collection.md)
 
-<video src="../assets/video/tasks.mp4" controls muted loop playsinline width="100%"></video>
+<video src="../../assets/video/tasks.mp4" controls muted loop playsinline width="100%"></video>
 
-*Ten task templates, one rig, one calibration protocol: six laboratory procedures on top, four household and industrial tasks below.*
+*Ten tasks, one rig, one calibration protocol. Top row: six laboratory procedures; bottom row: four household and industrial tasks.*
 
 ## 4.1 A capture day
 
-```text
-Wear (ch. 1) → host checks (2.1.4 / 2.2.5) → record the 01–17 calibration (ch. 5) → record the task list → spot-check replays → upload (optional) → fill in the capture log
-```
+1. **Wear the rig and run the checks** (1.4 and 2.5).
+2. **Record calibration.** Every donning starts with the 01–17 calibration sequence (chapter 5); one or two spare takes are a good idea. Calibration recordings must be recognisable by name, for example with the task name "calibration".
+3. **Record the task list** (chapter 3). Pick the task on the page, `r` to start, `e` to save; `d` discards a bad take.
+4. **Spot-check.** Replay a few recordings every day with `visualize_session.py` (4.4).
+5. **Upload** (optional, 3.6).
+6. **Keep a log.** The capture program writes `recording_log_<date>.csv` next to the data folder with each recording's start and end time, duration and frame counts. Also note by hand who made each recording and in which donning: processing groups recordings by exactly that, one calibration per group (7.3).
 
-1. **Wear the rig and run the checks.**
-2. **Record calibration first**, for every donning (two or three takes in the same donning are a good spare). Calibration sessions must be recognisable by name (e.g. a task named "calibration").
-3. **Record the task list** (launch in chapter 3). Pick the current task on the page, `r` to start, `e` to save; `d` discards a botched take.
-4. **Spot-check**: replay a few sessions every day with `visualize_session.py` (4.4).
-5. **Upload (optional)**: if local storage runs short, set up cloud object storage and rclone and upload (3.7).
-6. **Capture log**: the recorder writes `recording_log_<date>.csv` next to the data folder (start/end time, duration and per-stream frame counts per session). Also note by hand which subject and which donning each session belongs to; processing groups sessions into batches by exactly that.
+## 4.2 Naming
 
-## 4.2 Naming and layout
+Each recording is a folder named `session_<date>_<time>_<task>`, for example `session_20260901_154755_物料称量`. It holds five files, described in chapter 6:
 
 ```text
-data/session_<YYYYMMDD>_<HHMMSS>_<task>/
-├── session_….mp4
-├── session_….video.npz
-├── session_….npz
-├── session_….tracker.npz
-└── session_….session.json
+data/session_20260901_154755_物料称量/
+├── session_20260901_154755_物料称量.mp4
+├── session_20260901_154755_物料称量.video.npz
+├── session_20260901_154755_物料称量.npz
+├── session_20260901_154755_物料称量.tracker.npz
+└── session_20260901_154755_物料称量.session.json
 ```
 
-- For example `session_20260901_154755_物料称量`. Formats are in chapter 6.
-- Recovery recordings (responses to interruptions or failed attempts) append `_恢复` to the task name, e.g. `session_20260901_164121_过柱_恢复`. They are recorded deliberately so the data covers how people correct course.
+Recordings that deliberately capture interruptions and recovery get `_恢复` ("recovery") after the task name, for example `session_20260901_164121_过柱_恢复`.
 
 ## 4.3 Recording rules
 
-- **Stand still for 2–3 s at the start** before moving, and hold for 1–2 s at the end. Projection and the left/right check both use the starting stance.
-- **Do not touch trackers or straps during a recording.** If one gets knocked, note it in the log and re-record calibration if needed.
-- **The wrist trackers must be recording.** Some older `_恢复` recordings only had usable video, with wrist trackers that never moved; the body cannot be rebuilt from those.
-- **Length**: laboratory tasks typically run 2–7 minutes; split very long recordings.
-- **GoPro overlay**: the HDMI feed carries the GoPro's on-screen status (battery, SD card, …) along the top of the frame, and the release crops the top 110 px. Keep important content away from the very top edge.
+- **Stand still for 2–3 seconds** before starting and hold 1–2 seconds at the end. The side checks and the projection both use the opening stance.
+- **Do not touch trackers or straps while recording.** If one gets knocked, note it in the log and recalibrate if needed.
+- **Make sure the wrist trackers move.** Some earlier recovery recordings had only video, with wrist trackers that never moved; the body cannot be reconstructed from those.
+- **Keep recordings a manageable length.** Laboratory tasks usually take 2–7 minutes; split longer ones.
+- **Mind the top of the frame.** The GoPro's HDMI output carries its on-screen status (battery, SD card and so on) along the top, and the release crops the top 110 pixels. Keep important content away from the very top.
 
 ## 4.4 Checking a recording
 
-**`session.json`**: `video.queue_dropped_frames`, `read_failures` and `writer_failures` should be 0; `tracker.dropped_frames` should be 0; `overlap_s` should be close to the recording length.
+Start with `session.json`: `video.queue_dropped_frames`, `read_failures`, `writer_failures` and `tracker.dropped_frames` should all be 0, and `overlap_s` should be close to the recording length.
 
-**Replay a session**:
+Then replay it:
 
 ```bash
-python visualize_session.py data/session_YYYYMMDD_HHMMSS_TASK
+python visualize_session.py data/session_YYYYMMDD_HHMMSS_<task>
 # optional: --no-open --port 8000 --max-fps 30 --build-only
 ```
 
-It detects the glove type (Wuji / MANUS at 21 nodes; old 25-node MANUS is still recognised) and puts video, the five trackers, both hand skeletons and touch on one timeline:
+The replay page detects the glove type and puts video, the five trackers, both hand skeletons and touch on one timeline (the page is shown in 3.4). What to look for:
 
-![Replay page of one Wuji recording](../assets/img/capture_session_viewer.jpg)
-
-*A real Wuji weighing recording: the GoPro view on the left (the GoPro overlay is visible at the top); top right, the five trackers in world coordinates; bottom right, both hand skeletons and the 24×31 touch heat maps.*
-
-What to look for:
-
-- all five trackers have coordinates in the top-right panel, all move, and turn together when the subject turns;
-- both hand skeletons move, without a left/right mix-up (the hand moving in the video moves on its own side);
-- Wuji: the touch maps light up during grasps; large always-on or always-dark areas mean a glove or calibration problem;
-- duration and rates match the recording.
+| Check | Normal |
+|---|---|
+| Trackers | All five have coordinates and move, and turn together when the wearer turns |
+| Hand skeletons | Both move; the hand moving in the video moves on its own side |
+| Touch (Wuji) | Lights up during grasps; large areas that stay on or stay dark point to a glove or calibration problem |
+| Duration and rates | Match the recording |

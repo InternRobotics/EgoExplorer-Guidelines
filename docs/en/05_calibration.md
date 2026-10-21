@@ -1,102 +1,103 @@
-# 5. Calibration and calibration recordings
+# 5. Calibration
 
 [Back to contents](../index.md#english) · [中文](../zh/05_calibration.md)
 
-## 5.1 Why a separate calibration
+## 5.1 Why calibrate separately
 
-A tracker reading depends on two unknowns at once: **where and how the device sits on the limb** (mounting extrinsics) and **how the limb moves** (joint pose). Fitted together, a mounting error quietly becomes a pose error. So the first step of C³ is: **for every donning, solve body shape, scale and the five mounting transforms from a prescribed sequence and freeze them.** Every task recording reuses that result unchanged.
+A tracker reading depends on two things at once: where and in which orientation the tracker sits on the limb (its mounting), and how the limb itself moves (the joint pose). Fitted together, mounting errors get absorbed as pose errors. So after each donning, a prescribed sequence is used to solve body shape, scale and the mounting of the five trackers on their own, and every later task recording reuses that result.
 
-Calibration writes a `subject_profile.json` containing:
+The result is saved as `subject_profile.json`:
 
-- SMPL-X `betas` (10) and a metric `scale`
-- the fixed transform (translation + rotation) of each of the five trackers relative to its joint
-- body dimensions, a personal gait/turn prior (from stages 16–17), per-tracker residuals and other quality information
+- SMPL-X shape `betas` (10) and `scale`;
+- the mounting translation and rotation of each tracker relative to its joint;
+- body dimensions, a personal turning and walking reference (from stages 16–17), and per-tracker residuals.
 
 ## 5.2 When to recalibrate
 
-- A new subject
-- Any tracker removed and re-attached, or a strap that visibly slipped
-- New gloves or new hand mounts
+- A different wearer;
+- any tracker removed and re-attached, or a strap that visibly slipped;
+- new gloves or new hand bases.
 
-As long as the mounts are unchanged, one profile can be reused across days and tasks. **A new mounting does not require retraining the network**: mounting extrinsics are removed before the network input (verified by swapping profiles).
+As long as the mounting is unchanged, one calibration can be reused across days and tasks. A new wearer or a new donning does **not** require retraining the network: the network's input already has the mounting removed.
 
-## 5.3 The protocol (01–17, about 144 s)
+## 5.3 The calibration sequence
 
-Hold every static pose for at least 3 s; perform dynamic motions slowly, continuously and with controlled range. The collector follows the three-view reference video below (`assets/calibration_protocol_reference.mp4` in the toolkit). **Follow the "subject left/right" labels on the page; the left side of the screen is not the subject's left.**
-
-![The 01–17 calibration reference (SMPL-X reference geometry, labelled with times in the reference motion)](../assets/img/protocol-fig.jpg)
+The sequence has 17 stages and takes about 144 seconds. Hold each static pose for at least 3 seconds; move slowly, smoothly and within a comfortable range. The wearer follows the three-view reference video below (`assets/calibration_protocol_reference.mp4` in the toolkit).
 
 <video src="../../assets/video/calibration_protocol_reference.mp4" controls muted loop playsinline width="100%"></video>
 
-*Collectors follow this three-view reference video (front, left, right). The same file ships as `assets/calibration_protocol_reference.mp4` in the toolkit.*
+![The 01–17 calibration reference](../assets/img/protocol-fig.jpg)
 
-| Stage | Duration | Motion | Used for |
+*The reference motion is generated with SMPL-X; the numbers are times within the reference. Left and right are the wearer's own; nothing is mirrored.*
+
+| Stage | Duration | Motion | Solves for |
 |---|---:|---|---|
-| 01 | 7 s | Neutral stance, toes forward, arms relaxed, looking ahead | Floor, height, initial root |
-| 02 | 9 s | Body still; slowly look left, right, down, up, pausing 1 s at each end | Head mount rotation |
-| 03 | 7 s | A-pose: arms ~45° down and out, palms down | Shoulder width, upper arm |
-| 04 | 7 s | T-pose: arms horizontal, elbows straight, palms down | Arm span, shoulder–wrist length |
+| 01 | 7 s | Stand naturally, toes forward, arms down, looking ahead | Floor, height, initial heading |
+| 02 | 9 s | Body still; slowly turn the head left, right, down, up, pausing 1 second at each end | Head mounting rotation |
+| 03 | 7 s | A-pose: arms about 45° down and out, palms down | Shoulder width, upper arm |
+| 04 | 7 s | T-pose: arms horizontal, elbows straight, palms down | Arm span, shoulder-to-wrist length |
 | 05 | 7 s | Arms straight forward, palms down | Hand tracker position and orientation |
-| 06 | 8 s | Arms out to the side, palms turned up; flex right, left, right, left elbow (two rounds) | Upper/forearm length, hand extrinsics |
-| 07 | 8 s | Arms forward; wrists palm-down, turn, pronate, supinate | Hand tracker rotation |
-| 08 | 8 s | Two shallow squats, torso upright, feet fixed | Hip–knee–ankle lengths, floor |
-| 09 | 7 s | Raise and lower the **subject's own** left leg twice without leaning | Left ankle extrinsics |
-| 10 | 7 s | Raise and lower the subject's own right leg twice | Right ankle extrinsics |
-| 11 | 7 s | In place, first lift the heels (rise onto the toes), then lift the toes (rock onto the heels) | Ankle tracker rotation |
-| 12 | 7 s | Hands forward: spread, then close the fingers | Palm scale, glove static offset |
-| 13 | 7 s | Slowly make a fist and fully open, twice | Finger flexion scale and zero |
-| 14 | 9 s | Touch thumb to index, middle, ring, little finger in turn, then open | Opposition and pinch |
-| 15 | 9 s | Fully flex and extend index, middle, ring, little finger in turn | Per-finger chain mapping |
-| 16 | 16 s | Small-step turn in place: 180° left and back, then 180° right and back, head with torso | World yaw, turn continuity, L/R and front/back check |
-| 17 | 14 s | Facing forward, two steps forward, then two steps back to the start | Gait, pelvis translation, floor-contact check |
+| 06 | 8 s | Arms out to the side with palms up; bend the elbows right, left, right, left | Upper and forearm lengths, hand mounting |
+| 07 | 8 s | Arms forward; turn the wrists palm down, over, inward, outward | Hand tracker mounting rotation |
+| 08 | 8 s | Two shallow squats, torso upright, feet still | Hip, knee and ankle lengths, floor |
+| 09 | 7 s | Raise and lower the left leg twice without leaning | Left ankle mounting |
+| 10 | 7 s | Raise and lower the right leg twice | Right ankle mounting |
+| 11 | 7 s | In place, rise onto the toes, then lift the toes | Ankle tracker mounting rotation |
+| 12 | 7 s | Hands forward; spread and close the fingers | Palm scale, glove zero position |
+| 13 | 7 s | Slowly make a fist and open fully, twice | Finger flexion scale and zero |
+| 14 | 9 s | Touch the thumb to the index, middle, ring and little finger in turn, then open | Opposition and pinch |
+| 15 | 9 s | Fully bend and straighten the index, middle, ring and little finger in turn | Per-finger mapping |
+| 16 | 16 s | Small steps on the spot: turn 180° left and back, then 180° right and back, head turning with the body | Heading, turning continuity, left/right and front/back check |
+| 17 | 14 s | Facing forward, take two steps forward, then two steps back to the start | Gait, pelvis translation, floor contact check |
 
-**Requirements:**
+Recording requirements:
 
-- Flat, hard floor; tape a mark for each foot with the toes pointing the same way. The starting stance defines the reference left/forward of the world frame (chapter 11).
-- Let the trackers settle after power-on and confirm all five share one global frame without dropouts.
-- Record 3 s of standing still before the protocol.
-- Trackers must not be removed or moved during calibration or the task recordings that follow.
-- Stages 16–17 are dynamic acceptance stages: they feed the full-sequence reconstruction, the personal turn/gait prior and the web check, but **do not enter the static scale/shape equations** (the pelvis keeps moving while turning and walking; treating them as static points would corrupt shape and mounts).
+- A flat, hard floor, with tape marking where each foot goes and the toes pointing the same way. The opening stance defines "left" and "forward" in the world frame (11.1).
+- After switching on, let the trackers settle and check that all five share one coordinate frame without jumps.
+- Stand still for 3 seconds before starting.
+- Trackers must not be removed or moved during calibration or during the task recordings that follow.
 
-## 5.4 Running `calibrate-subject`
+Stages 16–17 check the full reconstruction and give the personal turning and walking reference; they do not enter the solve for shape and mounting, because the pelvis keeps moving while turning and walking, and treating those frames as static poses would bias the result.
 
-A CPU is enough; run from the toolkit root:
+## 5.4 Running the calibration
+
+Run from the toolkit root; a CPU is enough:
 
 ```bash
-# --data: folder with one or more 01–17 recordings of the same subject and the same donning; height and arm span in metres
 PYTHONPATH=src python -m five_tracker_smplx.cli calibrate-subject \
-  --data <calibration session root> \
+  --data <calibration recordings of one wearer and one donning> \
   --height <height_m> --armspan <armspan_m> \
-  --output-dir $WORK/profiles/<subject>_<date> \
+  --output-dir $WORK/profiles/<name> \
   --body-model-path models/smplx \
   --vposer-path models/vposer/V02_05 \
   --motion-cache assets/calibration_motion_vposer_mano.npz \
   --iterations 1100 --optimized-betas 5 --device cpu
 ```
 
-- Stage alignment is automatic: 01–11 use the trackers' position/rotation features, 12–15 add glove joint motion energy, 16–17 use the joint rotation and horizontal displacement of head and ankles. Each recording gets a `protocol_alignment.json` (stage bounds, confidence). Stages 16–17 are only appended when a real turn and walk are detected.
-- If automatic alignment fails, stage bounds can be annotated by hand (`*_manual_alignment.json`) and used for calibration.
-- Optional `--smplx-prior <npz>`: betas recovered from video (e.g. GVHMR) as a shape prior only, never as per-frame alignment. The production profiles use it (weight 0.18); without it the mounts barely change but shape and scale differ.
-- Fitting principles: one translation/rotation per tracker for the whole sequence; release only the first few betas with height and arm span as strong constraints (fitting all 10 betas freely from five trackers is unobservable); the pelvis–neck angle to gravity is only a soft constraint.
+- **Stages are aligned automatically.** Stages 01–11 are recognised from the trackers' positions and rotations, 12–15 also use glove joint motion, and 16–17 use the turning and displacement of the head and ankles. Each recording gets a `protocol_alignment.json` with stage boundaries and confidence. If automatic alignment fails, stage boundaries can be annotated by hand (`*_manual_alignment.json`).
+- **Shape prior (optional).** `--smplx-prior <npz>` uses an SMPL-X shape estimated from video (for example by GVHMR) as a prior, with weight 0.18 by default. Without it the mounting barely changes (a few millimetres), but shape and scale differ.
+- **How it solves.** Each tracker has one mounting translation and rotation for the whole sequence. Only the first few shape components are free, with height and arm span as strong constraints: all ten components cannot be recovered from five trackers. The tilt of the pelvis-to-neck line relative to gravity is only a soft constraint.
 
-**Outputs**: `subject_profile.json` (format `five_tracker_smplx_subject_profile_v5_wxyz_source_columns`) + `subject_calibration.html` (acceptance page). Once it passes, copy `subject_profile.json` to `$WORK/profiles/<batch>.json`, where chapter 7 picks it up.
+The output folder holds `subject_profile.json` and an acceptance page, `subject_calibration.html`. Once it passes, copy `subject_profile.json` to `$WORK/profiles/<batch>.json`, where chapter 7 picks it up.
 
 ## 5.5 Acceptance
 
-Check in `subject_calibration.html`:
+Open `subject_calibration.html` and check:
 
-- 01–17 labels in order with correct stage boundaries;
-- turning the head does not drag the torso; elbow flexion, wrists, shallow squats, leg raises and ankle motion look natural, with no left/right flip;
-- feet flat and not sliding in static stages; turns made of alternating small steps; the walk is two steps forward and two back, four footfalls in total;
-- no abnormal pelvis sway or frame-to-frame jumps;
-- **in static stages the predicted-vs-measured tracker residual is stable and does not drift with motion.** If one tracker stays above about 3–4 cm, check strap slip and role mapping first, then the coordinate frame.
+- [ ] stages 01–17 are in order with correct boundaries;
+- [ ] turning the head does not turn the torso; elbow, wrist, squat, leg-raise and ankle motions look natural, with no left/right swap;
+- [ ] feet flat and still in the static stages; turns made of alternating small steps; the walk is two steps forward and two back, four footfalls in total;
+- [ ] no unusual pelvis sway and no jumps between neighbouring frames;
+- [ ] each tracker's residual stays steady in the static stages and does not grow over time.
 
-## 5.6 Which profile a task recording uses
+If one tracker's residual stays above 3–4 cm, check first whether its strap slipped and whether its role is right, then the coordinate frame.
 
-**A profile belongs to a subject and a donning, not to a rig or a task.** Chapter 7 organises recordings into batches: a batch holds recordings of one subject in one donning, and the whole batch uses the profile calibrated for that donning.
+## 5.6 Which calibration a recording uses
 
-- The same rig worn by someone else is a new batch and needs a new profile.
-- Record in the capture log who recorded each session and which donning it belongs to.
-- If the log is missing and you are unsure who recorded a session, look at head height (how far the head tracker sits above the ankle trackers when standing). It differs between people by several centimetres; compare it with the value in each profile's calibration recordings.
+A calibration belongs to a wearer and a donning, not to a rig or a task. Processing groups recordings (7.3): one group holds recordings of one wearer in one donning, and the whole group uses that donning's calibration.
 
-A wrong profile costs a lot: one session went from 62 mm RMS with the right profile to 80 mm with the wrong one.
+- The same rig worn by someone else is a new group and needs a new calibration;
+- record in the capture log who made each recording and in which donning;
+- if the log is missing, look at how far the head tracker sits above the ankle trackers when standing. It differs between people by several centimetres; compare it with each calibration recording.
+
+A wrong calibration costs a lot: one recording went from 62 mm to 80 mm residual with someone else's calibration.

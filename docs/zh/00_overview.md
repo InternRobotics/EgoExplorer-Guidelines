@@ -1,61 +1,68 @@
-# 0. 总览与数据流
+# 0. 总览
 
 [返回目录](../index.md) · [English](../en/00_overview.md)
 
-## 0.1 这套系统做什么
-
-一个人穿着轻量化的可穿戴设备在真实场景（实验室、工厂、客厅、书房、厨房）里边走边干活，我们同步记录四路信号：
-
-| | 信号 | 设备 | 原生速率（实测） |
-|---|---|---|---|
-| A | 第一视角视频 | GoPro HERO13 Black + Media Mod，经 3D 打印转接件与头部 tracker 刚性相连 | Wuji 方案实测约 30 Hz；MANUS 方案约 52–60 Hz |
-| B | 全身运动 | 5 × VIVE Ultimate Tracker（头、双腕、双踝外侧），inside-out，无基站 | Wuji 方案约 65 Hz；MANUS 方案默认 90 Hz（旧录制约 15 Hz，见第 2.2.3 节） |
-| C | 手指关节 | MANUS Metagloves Pro **或** Wuji 手套 | MANUS 约 22 Hz（旧 25 点）/ 约 220 Hz（新 21 点）；Wuji 约 120 Hz |
-| D | 触觉 | Wuji 手套，每手 24×31 = 744 个 taxel | 约 120 Hz |
-
-然后用 **C³（Calibrate–Complete–Constrain）** 管线把稀疏的 5 个 tracker 变成完整、带尺度、物理上合理的 SMPL-X 人体，再把手套的手指姿态和触觉融合到同一个身体、同一条时间轴上。
+EgoExplorer 用一套可穿戴设备记录人在真实场景中边走边操作的过程：采集者戴上五个 tracker、一副手套和一台头戴相机，在实验室、工厂、客厅、书房或厨房里完成任务。设备同时记录四路信号，处理管线再把它们还原成带手指的 SMPL-X 人体，并对齐到同一条时间轴上。
 
 <video src="../../assets/video/session_weighing.mp4" controls muted loop playsinline width="100%"></video>
 
-*一条录制（物料称量，5 倍速）：第一视角视频、全身运动、手部骨架与触觉、步骤描述，都在同一条时间轴上。*
+*一条物料称量录制（5 倍速）：第一视角视频、全身运动、手部骨架与触觉、步骤描述共用一条时间轴。*
 
-**整条处理管线可以在一台机器上跑完**（推荐带一块 NVIDIA GPU），不依赖集群。
+## 0.1 四路信号
 
-## 0.2 数据流
+| | 信号 | 设备 | 原生速率（实测） |
+|---|---|---|---|
+| A | 第一视角视频 | GoPro HERO13 Black + Media Mod，与头部 tracker 刚性相连 | Wuji 方案约 30 Hz；MANUS 方案约 52–60 Hz |
+| B | 全身运动 | 5 个 VIVE Ultimate Tracker：头、双手手背、双踝外侧 | Wuji 方案约 65 Hz；MANUS 方案默认 90 Hz（旧录制约 15 Hz） |
+| C | 手指关节 | MANUS Metagloves Pro 或 Wuji 手套 | MANUS 约 220 Hz（旧版 25 节点约 22 Hz）；Wuji 约 120 Hz |
+| D | 触觉 | Wuji 手套，每只手 24×31 = 744 个触点 | 约 120 Hz |
+
+## 0.2 处理流程
+
+稀疏的五个 tracker 不足以直接确定全身姿态。重建分三步（C³：Calibrate–Complete–Constrain）：
+
+1. **标定（Calibrate）**：每次佩戴先做一段规定动作，解出体型、尺度和五个 tracker 的安装位置，之后的录制都沿用这份结果；
+2. **补全（Complete）**：时序网络根据五个 tracker 给出整段全身轨迹，补上 tracker 看不到的关节；
+3. **约束（Constrain）**：在 tracker、身体自身表面和地面三层约束下优化这条轨迹。
+
+身体解出来以后，再把手套测到的手指姿态和触觉挂到同一个身体上，统一重采样到 30 Hz。
 
 ![C³ 管线：采集、标定、补全、约束，再到手部融合与导出](../assets/img/pipeline-fig.jpg)
 
 ```mermaid
 flowchart TD
-    A[穿戴设备] --> B[01–17 标定动作录制]
-    B --> C[calibrate-subject<br/>subject_profile.json]
-    A --> D[任务录制<br/>tracker.npz / npz / video.npz / mp4 / session.json]
-    D --> E[拷到工作目录<br/>$WORK/ego_data_sync/&lt;batch&gt;/]
-    E --> I[检查：tracker 左右反 / 手套配对]
-    I --> J[修正：写左右修正副本 + 合并输入视图]
-    J --> H[投影：AvatarPoser 提案 + L1/L2/L3 约束<br/>smplx_profile_driven.npz]
+    A[佩戴设备] --> B[录制 01–17 标定动作]
+    B --> C[calibrate-subject<br/>subject profile]
+    A --> D[任务录制]
+    D --> I[检查 tracker 与手套的左右]
+    I --> J[写左右修正副本]
+    J --> H[投影：补全 + 约束<br/>身体 SMPL-X]
     C --> H
-    H --> K[手部融合：手套 → MANO<br/>smplx_with_manus_hands.npz]
-    K --> L[30 Hz 统一导出<br/>unified_30hz/&lt;sid&gt;.npz]
-    L --> M[三联校验页 + gallery]
-    L --> O[LeRobot v3.0]
+    H --> K[手部融合<br/>身体 + 手指 SMPL-X]
+    K --> L[30 Hz 统一导出]
+    L --> M[三联校验页与总览页]
+    L --> O[LeRobot v3.0 数据集]
 ```
 
-## 0.3 工具包里有什么
+整条处理管线可以在一台机器上完成，推荐配一块 NVIDIA GPU。
 
-代码仓库：[InternRobotics/egoexplorer-toolkit](https://github.com/InternRobotics/egoexplorer-toolkit)。
+## 0.3 代码
 
-| 部分 | 内容 |
+代码在 [InternRobotics/egoexplorer-toolkit](https://github.com/InternRobotics/egoexplorer-toolkit)。
+
+| 目录 | 内容 |
 |---|---|
-| `capture/` | 采集程序：Wuji / MANUS 两种方案、Windows tracker 发送端、会话回看（第 2–4 章） |
-| `src/five_tracker_smplx/` | 库：数据读取、坐标约定、标定、SMPL-X 拟合、手部映射、viewer |
-| `scripts/` | 各阶段脚本：投影、检查、修正、导出、审阅页、gallery、训练 |
-| `ckpt/` | v3 proposal 网络 checkpoint |
-| `models/` | SMPL-X、VPoser（需从官网下载，见第 7.2 节） |
-| `hardware/` | 采购清单与 3D 打印件（待补充） |
+| `capture/` | 采集程序，支持 Wuji 和 MANUS 两种手套（第 2–4 章） |
+| `src/five_tracker_smplx/` | 库：数据读取、坐标约定、标定、SMPL-X 拟合、手部融合 |
+| `scripts/` | 各处理阶段的脚本，单机入口 `scripts/run_pipeline.sh` |
+| `tactile/` | Wuji 触觉处理与手套健康表 |
+| `ckpt/` | 补全阶段用的网络权重 |
+| `assets/` | 标定参考动作与参考视频 |
+| `hardware/` | 采购清单与 3D 打印件 |
+| `models/` | SMPL-X 与 VPoser，需从官网下载（第 7.2 节） |
 
-## 0.4 各章怎么读
+## 0.4 阅读顺序
 
-- 第一次搭设备、组织采集：第 1–5 章。
-- 只处理已有数据：第 6–10 章，配合第 11 章（坐标系）和第 12 章（环境与坑）。
-- 写任何读这些 npz 的代码之前，**先读第 11 章和第 12.2 节**：采样率永远不统一、时间戳有相对/绝对之分、四元数顺序在原始文件和发布文件里不一样。
+- **搭建设备、组织采集**：第 1–5 章。
+- **处理已有数据**：第 6–10 章。
+- **写代码读取数据之前**：先看第 11 章（坐标系）和第 12.2 节。三个容易出错的地方：各路信号的采样率都不一样；有的时间戳是相对时间，有的是绝对时间；原始文件和发布文件的四元数顺序不同。
