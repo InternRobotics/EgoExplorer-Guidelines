@@ -72,7 +72,7 @@ The defaults of `scripts/run_five_tracker_pipeline.py` are the following and nor
 | L3 floor | penetration weight 50 |
 | Optimisation | 60 Adam steps, learning rate 0.004, 256 frames per chunk |
 
-Two of these come from problems we ran into:
+Leave these two unchanged:
 
 - **Learning rate 0.004.** At 0.008, about 20–35% of real recordings diverge with `FloatingPointError: non-finite SMPL-X parameters`.
 - **Torso lean limit 90°.** With a 15° limit, bending, lunging and sitting make the whole body sink below the floor.

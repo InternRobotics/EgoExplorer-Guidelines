@@ -13,8 +13,8 @@
 | 媒体模组 | GoPro Media Mod（HERO13/12/11 通用） | 1 | [淘宝](https://e.tb.cn/h.jWg7Rd1eJVpQFGl?tk=sRXrTF8xGCs) | 提供 micro-HDMI 输出 |
 | HDMI 采集卡 | 绿联 4K60Hz USB 采集卡（UVC） | 1 | [京东](https://3.cn/37Yq-tog?jkl=@Q3DcI0h3Iu7W@) | Linux 下识别为 `/dev/videoN` |
 | 视频线 | micro-HDMI 转 HDMI | 1 | [京东](https://3.cn/37YriR-s?jkl=@XB71C3CgoM8X@) | |
-| 手套（二选一） | MANUS Metagloves Pro | 1 副 | 待补充 | 只有手指关节 |
-| | Wuji 手套 | 1 副 | 待补充 | 手指关节，加每只手 24×31 触觉；以太网连接 |
+| 手套（二选一） | MANUS Metagloves Pro | 1 副 | [MANUS 官网](https://www.manus-meta.com/)，联系官方销售 | 只有手指关节 |
+| | Wuji 手套 | 1 副 | [Wuji 官网](https://wuji.tech/)，联系官方销售 | 手指关节，加每只手 24×31 触觉；以太网连接 |
 | USB 网卡 | 绿联 USB 3.0 千兆网口扩展坞 | 2 | [京东](https://3.cn/37-YsP1x?jkl=@VER0R1iYlA3G@) | Wuji 方案，每只手套一个网口 |
 | 绑带 | VIVE tracker 绑带、GoPro 头带 | 头带 1，绑带 4 | [tracker 绑带](https://e.tb.cn/h.jX7EVqK0xb7nHvB?tk=vOtgTFj8BVK) · [GoPro 头带](https://e.tb.cn/h.jc684WNxd6oG6gN?tk=BdM7TFj9A15) | |
 | Linux 采集机 | Ubuntu 22.04 及以上 | 1 | — | 仅 Wuji 方案；可用便携设备 |
@@ -66,4 +66,4 @@ STL 文件和打印参数放在 [egoexplorer-toolkit](https://github.com/InternR
     - **左右要和 SteamVR 角色一致。** 戴反会直接导致 SMPL-X 解错。
     - **绑带要勒紧。** tracker 慢慢滑动时，每一帧单看都正常，误差会被悄悄算进身体姿态。
 
-**Wuji 触觉。** 手套的触觉灵敏度会随使用慢慢下降，个别线路会时断时续。建议每段录制开始前在 Wuji Studio 里重新做一次触觉标定（约 15 秒），方便逐段估计手套状态。
+**Wuji 触觉。** 手套的触觉灵敏度会随使用慢慢下降，个别线路会时断时续。建议每天开始采集前在 Wuji Studio 里做一次触觉标定（约 15 秒），方便跟踪手套状态。

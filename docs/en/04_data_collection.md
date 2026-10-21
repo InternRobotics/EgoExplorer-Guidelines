@@ -34,7 +34,7 @@ Recordings that deliberately capture interruptions and recovery get `_恢复` ("
 
 - **Stand still for 2–3 seconds** before starting and hold 1–2 seconds at the end. The side checks and the projection both use the opening stance.
 - **Do not touch trackers or straps while recording.** If one gets knocked, note it in the log and recalibrate if needed.
-- **Make sure the wrist trackers move.** Some earlier recovery recordings had only video, with wrist trackers that never moved; the body cannot be reconstructed from those.
+- **Make sure the wrist trackers move.** A recording without wrist tracker data cannot be reconstructed.
 - **Keep recordings a manageable length.** Laboratory tasks usually take 2–7 minutes; split longer ones.
 - **Mind the top of the frame.** The GoPro's HDMI output carries its on-screen status (battery, SD card and so on) along the top, and the release crops the top 110 pixels. Keep important content away from the very top.
 

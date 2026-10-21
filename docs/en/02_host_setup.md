@@ -42,10 +42,7 @@ Tracker sample rate:
 | Setup | How | Default |
 |---|---|---|
 | Wuji | The Windows sender is capped (`--send-fps`), and so is writing on Linux (`--tracker-record-fps`). Without a cap, some OpenXR runtimes produce near 1000 duplicate poses per second, which crowds out glove data on Linux | send 90, write 120 |
-| MANUS | Tracker poses are queried on the system clock (`--tracker-sample-fps`) instead of following SteamVR's background refresh of about 15 Hz | 90 |
-
-!!! note
-    MANUS recordings made before this sampling fix have trackers at about 15 Hz (6.5).
+| MANUS | Tracker poses are queried on the system clock (`--tracker-sample-fps`) | 90 |
 
 ## 2.3 Linux capture PC (Wuji rig)
 

@@ -4,7 +4,7 @@
 
 ## 8.1 为什么要统一导出
 
-原始录制里没有两路信号的速率相同：tracker 15、65 或 90 Hz，手套 22、120 或 220 Hz，视频 30–60 Hz。投影得到的 SMPL-X 用的是 tracker 自己的时间戳，而且从 0 开始计时，其它信号用的却是主机的绝对时间。直接按下标把这些数组对在一起，结果是错的，而且不会报错。
+原始录制里没有两路信号的速率相同：tracker 65 或 90 Hz，手套 120 或 220 Hz，视频 30 或 60 Hz。投影得到的 SMPL-X 用的是 tracker 自己的时间戳，而且从 0 开始计时，其它信号用的却是主机的绝对时间。直接按下标把这些数组对在一起，结果是错的，而且不会报错。
 
 `export_unified_30hz.py` 为每条录制输出一个 npz，**所有逐帧数组的第 i 个元素对应同一时刻**。时间栅格对齐到绝对时间的 1/30 秒整数倍，同一时刻在任何录制里都落在同一个位置。
 
@@ -38,7 +38,7 @@ python scripts/export_unified_nobody.py --sync-root $WORK/input/ego_data_sync \
 
 每个 tracker 单独重采样，只用它自己的有效样本。超出某个 tracker 覆盖范围的栅格点记为 `tracker_valid=False`，不硬插值（长度为 0 的四元数会让 Slerp 直接报错）。每路信号还有一个 `*_interpolated` 标记：栅格点离最近的真实样本超过一个原生采样周期时为 True，用来区分测量值和跨越丢帧插出来的值。
 
-往返误差（先重采样到 30 Hz，再插回原始时间戳）：MANUS 0.069° / 0.50 mm，Wuji 0.016° / 0.11 mm，触觉峰值全部保留，都远小于拟合误差本身。
+往返误差（先重采样到 30 Hz，再插回原始时间戳）在 0.1° / 0.5 mm 以内，触觉峰值全部保留，都远小于拟合误差本身。
 
 ## 8.4 输出内容：`unified_30hz/<录制名>.npz`
 
@@ -48,7 +48,7 @@ python scripts/export_unified_nobody.py --sync-root $WORK/input/ego_data_sync \
 |---|---|---|
 | `timestamps` | (T,) float64 | 主机绝对时间（秒） |
 | `rate_hz` | () | 30.0 |
-| `upsample_ratio` | () | 30 ÷ tracker 原生速率。早期 MANUS 录制约 1.98，即一半是插值；Wuji 约 0.46 |
+| `upsample_ratio` | () | 30 ÷ tracker 原生速率，例如 Wuji 约 0.46。大于 1 说明有一部分值是插值得到的 |
 
 **身体与手部**（中性 SMPL-X，`num_betas=10`，`use_pca=False`）
 
@@ -76,8 +76,8 @@ python scripts/export_unified_nobody.py --sync-root $WORK/input/ego_data_sync \
 
 | 键 | 形状 | 含义 |
 |---|---|---|
-| `glove_layout` | 字符串 | `manus25` 或 `wuji21` |
-| `glove_left_points`、`glove_right_points` | (T,N,3) | 手腕局部坐标系下的关节点，N 为 25 或 21 |
+| `glove_layout` | 字符串 | 21 节点为 `wuji21`（MANUS 和 Wuji 都是这个值） |
+| `glove_left_points`、`glove_right_points` | (T,21,3) | 手腕局部坐标系下的关节点 |
 | `glove_*_native_hz`、`glove_*_interpolated` | | |
 
 **触觉（仅 Wuji）**，`{S}` 为 `L` 或 `R`：
@@ -95,9 +95,6 @@ python scripts/export_unified_nobody.py --sync-root $WORK/input/ego_data_sync \
 17 个区域：`thumb_distal, thumb_proximal, index_{distal,middle,proximal}, middle_{…}, ring_{…}, pinky_{…}, palm_radial, palm_central, palm_ulnar`。
 
 触觉分层的定义和阈值写在 `wuji_correct.py` 开头：L0 原始值；L1 去掉滚动基线；L2 除以稳健标准差；L3 增益补偿（只用于消融实验，不导出）；L4 按区域 80% 分位并带迟滞判断，得到接触。手套老化后，靠的是"看变化量而不是绝对值"（L1、L2）恢复数据，增益补偿帮助不大。手套健康系数按录制估计，不能按天平均，因为很多线路时好时坏。
-
-!!! note "说明"
-    早期导出里有逐指平均值，键名也叫 `tactile_L0…L4`，含义与这里的 L0–L4 分层不同，不要混淆。
 
 **视频**
 

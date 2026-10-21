@@ -24,23 +24,22 @@
 
 **The data**
 
-1. **Streams never share a sample rate.** Resample by timestamp at every stage (linear interpolation or Slerp); never align by index and never assume a fixed frame rate. One piece of code once assumed that foot-contact probability and trajectory had the same length, which was true for none of 844 recordings: those below 60 Hz were silently misaligned and truncated, and those above 60 Hz (a whole batch of 218 Wuji recordings) failed outright. See `_load_contact_probability()` for the correct pattern.
+1. **Streams never share a sample rate.** Resample by timestamp at every stage (linear interpolation or Slerp); never align by index and never assume a fixed frame rate. For example, foot-contact probability is at 60 Hz and the tracker trajectory at its native rate; truncating one to the other's length either silently misaligns them or fails outright. See `_load_contact_probability()` for the correct pattern.
 2. **Relative and absolute time.** SMPL-X output starts at 0 while the other streams use the system clock; mixing them is off by more than a billion seconds.
 3. **Invalid quaternions.** Some frames have zero-length quaternions while marked valid, and a few recordings contain NaN. Resample each tracker on its own from valid, finite samples only.
 4. **Non-monotonic timestamps.** A few files have two frames a few milliseconds early, which makes Slerp fail; the pipeline handles this.
 5. **Folder depth varies.** Always search recursively with `rglob`; fixed-depth globs silently miss recordings.
-6. **Glove node count.** 21 nodes does not mean Wuji (current MANUS data has 21 nodes too); decide the layout from `hand_skeleton.shape[1]`.
-7. **Early MANUS recordings have trackers at about 15 Hz** (2.2), so about half of their 30 Hz export is interpolated; check `upsample_ratio`.
-8. **Recovery recordings are lower quality overall**, and some never recorded the wrist trackers; check them separately when selecting data.
+6. **Tell the glove type from `session.json`.** MANUS and Wuji skeletons both have 21 nodes, so check `glove_type` instead of the node count.
+7. **Check recovery recordings separately**, making sure the wrist trackers have data.
 
 **Processing parameters**
 
-9. **Learning rate 0.008 diverges**; use 0.004. A projection `FloatingPointError` can also come from the gradient of acos at ±1 in the joint limits (fixed), not necessarily from the learning rate.
-10. **A 15° torso lean limit sinks bending motions below the floor**; the default configuration uses 90°.
-11. **A wrong calibration is costly.** The same recording can go from about 60 mm to over 80 mm residual with someone else's calibration. Keep one wearer and one donning per batch.
+8. **Learning rate 0.008 diverges**; use 0.004.
+9. **A 15° torso lean limit sinks bending motions below the floor**; the default configuration uses 90°.
+10. **A wrong calibration is costly.** The same recording can go from about 60 mm to over 80 mm residual with someone else's calibration. Keep one wearer and one donning per batch.
 
 **Running and troubleshooting**
 
-12. **"ok" does not mean good.** Filter on `position_residual_m`.
-13. **Processes killed for lack of memory leave no error message.** If a recording failed without a reason, check `dmesg | tail` for `oom-kill` first.
-14. **Never write results back into capture folders**; write everything to `$WORK/out`.
+11. **"ok" does not mean good.** Filter on `position_residual_m`.
+12. **Processes killed for lack of memory leave no error message.** If a recording failed without a reason, check `dmesg | tail` for `oom-kill` first.
+13. **Never write results back into capture folders**; write everything to `$WORK/out`.

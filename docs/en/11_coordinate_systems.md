@@ -2,7 +2,7 @@
 
 [Back to contents](../index.md#english) · [中文](../zh/11_coordinate_systems.md)
 
-These are the project's coordinate conventions; the code is in `src/five_tracker_smplx/coordinates.py`. The project got this wrong three times early on (11.9), so read the whole chapter before reading or writing data.
+These are the project's coordinate conventions; the code is in `src/five_tracker_smplx/coordinates.py`. Read the whole chapter before reading or writing data; 11.9 lists the most common mistakes.
 
 ## 11.1 World frame
 
@@ -19,12 +19,7 @@ These are the project's coordinate conventions; the code is in `src/five_tracker
 
 **Position**: the tracker origin in the world frame, in metres.
 
-**Quaternion order**:
-
-| File | Order |
-|---|---|
-| Raw `*.tracker.npz` | **w, x, y, z** |
-| Glove skeletons, calibration files, released LeRobot data | **x, y, z, w** |
+**Quaternion order**: always **w, x, y, z**.
 
 **Meaning of the rotation**: converted to a matrix `R`, the quaternion rotates from the tracker's local frame to the world frame (acting on column vectors); the **columns** of `R` are the tracker's own three axes in the world.
 
@@ -96,7 +91,7 @@ For visualisation with Z up and the floor at 0:
 [x', y', z'] = [x, −z, y − ground_y_m]       rotation matrix [[1,0,0],[0,0,−1],[0,1,0]], determinant +1
 ```
 
-Swapping Y and Z without the minus sign is a mirror (determinant −1) and flips the body left to right. Early visualisations made exactly this mistake.
+Swapping Y and Z without the minus sign is a mirror (determinant −1) and flips the body left to right.
 
 ## 11.8 Time
 
@@ -107,8 +102,8 @@ Swapping Y and Z without the minus sign is a mirror (determinant −1) and flips
 | `unified_30hz` | Host absolute time (s), on whole multiples of 1/30 s |
 | LeRobot | Seconds within the episode, equal to the mp4 display time; `start_timestamp_host_us` in `metadata.json` converts back to absolute time |
 
-## 11.9 Earlier mistakes
+## 11.9 Common mistakes
 
-1. **Wrong quaternion order.** The recorder's quaternions were once treated as right-multiplied matrices and relative pose was written as `R_t · R_0ᵀ`, so "look left" came out as a negative turn. The root cause was that the raw data is wxyz, not xyzw. After the fix on 2026-09-02 the calibration file format became v5 (column-vector convention); v4 and older calibration files are rejected and must be recalibrated.
-2. **Wrong initial heading.** The pelvis heading was once initialised from the head tracker's absolute orientation without removing the head strap's mounting rotation, leaving it about 155° off, and the optimiser crossed the limbs to reach the trackers. The initial heading is now estimated by a horizontal alignment of the five labelled tracker positions.
-3. **Mirrored visualisation.** Early visualisations reordered `(X, Y, Z)` as `(X, Z, Y)`, mirroring the body.
+1. **Reading quaternions in the wrong order.** With the order wrong, relative rotations come out reversed, for example "look left" becomes a turn to the right. Read them as w, x, y, z and compute relative motion as `ΔR = R_0ᵀ · R_t`.
+2. **Using the head tracker's absolute orientation as the body's heading.** The head tracker's orientation includes the head strap's mounting rotation; using it directly leaves the initial heading far off, and the optimiser crosses the limbs to reach the trackers. Remove the mounting rotation first, or estimate the heading from the relative positions of the five trackers.
+3. **Only swapping Y and Z for display.** That is a mirror and flips the body left to right; use the rotation in 11.7.

@@ -12,9 +12,9 @@ EgoExplorer 用一套可穿戴设备记录人在真实场景中边走边操作�
 
 | | 信号 | 设备 | 原生速率（实测） |
 |---|---|---|---|
-| A | 第一视角视频 | GoPro HERO13 Black + Media Mod，与头部 tracker 刚性相连 | Wuji 方案约 30 Hz；MANUS 方案约 52–60 Hz |
-| B | 全身运动 | 5 个 VIVE Ultimate Tracker：头、双手手背、双踝外侧 | Wuji 方案约 65 Hz；MANUS 方案默认 90 Hz（旧录制约 15 Hz） |
-| C | 手指关节 | MANUS Metagloves Pro 或 Wuji 手套 | MANUS 约 220 Hz（旧版 25 节点约 22 Hz）；Wuji 约 120 Hz |
+| A | 第一视角视频 | GoPro HERO13 Black + Media Mod，与头部 tracker 刚性相连 | Wuji 方案约 30 Hz；MANUS 方案约 60 Hz |
+| B | 全身运动 | 5 个 VIVE Ultimate Tracker：头、双手手背、双踝外侧 | Wuji 方案约 65 Hz；MANUS 方案 90 Hz |
+| C | 手指关节 | MANUS Metagloves Pro 或 Wuji 手套 | MANUS 约 220 Hz；Wuji 约 120 Hz |
 | D | 触觉 | Wuji 手套，每只手 24×31 = 744 个触点 | 约 120 Hz |
 
 ## 0.2 处理流程
@@ -65,4 +65,4 @@ flowchart TD
 
 - **搭建设备、组织采集**：第 1–5 章。
 - **处理已有数据**：第 6–10 章。
-- **写代码读取数据之前**：先看第 11 章（坐标系）和第 12.2 节。三个容易出错的地方：各路信号的采样率都不一样；有的时间戳是相对时间，有的是绝对时间；原始文件和发布文件的四元数顺序不同。
+- **写代码读取数据之前**：先看第 11 章（坐标系）和第 12.2 节。两个容易出错的地方：各路信号的采样率都不一样；有的时间戳是相对时间，有的是绝对时间。

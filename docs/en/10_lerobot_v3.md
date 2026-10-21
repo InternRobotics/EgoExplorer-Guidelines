@@ -34,7 +34,7 @@ Released data uses the [LeRobotDataset v3.0](https://github.com/huggingface/lero
 |---|---|---|
 | `timestamp` `frame_index` `episode_index` `index` `task_index` | scalars | `timestamp` is seconds within the episode and equals the mp4 display time |
 | `tracker.<role>.position` | float32 (3) | Metres; `<role>` is camera, left_wrist, right_wrist, left_ankle or right_ankle |
-| `tracker.<role>.orientation` | float32 (4) | Quaternion in **x, y, z, w** order (raw files are wxyz) |
+| `tracker.<role>.orientation` | float32 (4) | Quaternion in w, x, y, z order |
 | `tracker.<role>.rotation_6d` | float32 (6) | First two columns of the rotation matrix, order `r00, r10, r20, r01, r11, r21` |
 | `gravity.direction` | float32 (3) | `(0, -1, 0)` |
 | `observation.hand.{left,right}.joint_positions` | float32 (21, 3) | Glove joint points (21 nodes) |
@@ -86,7 +86,7 @@ At the end the converter checks that every episode's parquet row count equals it
 
 1. **Re-encodes the video.** The raw mp4 has a variable frame rate, so `timestamp` and display time differ by up to about 25 ms, which breaks LeRobot's video reading at its default `tolerance_s = 1e-4`. The converter crops the top 110 pixels with ffmpeg and encodes at exactly 30 fps, after which frame k is displayed at exactly k/30 s.
 2. **Uses the video frames as the timeline.** Trackers are interpolated from their native rate (about 65 Hz) to each video frame time: positions linearly, rotations by shortest-path Slerp. Across a native dropout longer than 0.25 s, or a jump of more than 0.10 m or 60° between neighbouring samples (tracker relocalisation or a bad frame), it does not interpolate and takes the nearer sample instead. Interpolation statistics per tracker go into `quality.json`.
-3. **Writes quaternions as xyzw**, together with `rotation_6d`.
+3. **Writes quaternions and `rotation_6d`**, with quaternions in w, x, y, z order.
 4. **Takes hands and touch from `unified_30hz`.** A hand missing there is recomputed from the raw glove file with the same touch processing, and its source is recorded in `metadata.json` and `info.json`. Regions without usable taxels get NaN score and residual and constant-zero contact, with the coverage of each region in `coverage_17`.
 5. **Stores SMPL-X per episode** in `smplx_episode.npz` with the same keys as `unified_30hz`; shape, scale and mounting go into `calibration.json` instead of being repeated on every row.
 6. **Writes the metadata**: `info.json`, `stats.json`, `tasks.parquet` and `episodes/…parquet`.
@@ -102,7 +102,7 @@ ds = LeRobotDataset("InternRobotics/EgoExplorer", root="EgoExplorer/dataset/lero
 print(ds.meta.info["fps"], ds.num_episodes, ds.num_frames)
 frame = ds[0]
 frame["observation.images.camera_0"]          # (3, H, W)
-frame["tracker.camera.orientation"]           # x, y, z, w
+frame["tracker.camera.orientation"]           # w, x, y, z
 ```
 
 SMPL-X forward pass (same conventions as the gallery and review pages):

@@ -42,10 +42,7 @@ tracker 的采样率：
 | 方案 | 做法 | 默认值 |
 |---|---|---|
 | Wuji | Windows 端发送有上限（`--send-fps`），Linux 端写盘也有上限（`--tracker-record-fps`）。部分 OpenXR 运行时不限速时会产生近千帧每秒的重复位姿，挤占手套数据的接收 | 发送 90，写盘 120 |
-| MANUS | 按系统时钟直接查询 tracker 位姿（`--tracker-sample-fps`），不再跟随 SteamVR 约 15 Hz 的后台刷新节奏 | 90 |
-
-!!! note "说明"
-    修复采样方式之前录的 MANUS 数据，tracker 只有约 15 Hz（第 6.5 节）。
+| MANUS | 按系统时钟直接查询 tracker 位姿（`--tracker-sample-fps`） | 90 |
 
 ## 2.3 Wuji 方案的 Linux 采集机
 

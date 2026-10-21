@@ -34,7 +34,7 @@
 |---|---|---|
 | `timestamp` `frame_index` `episode_index` `index` `task_index` | 标量 | `timestamp` 是 episode 内的秒数，与 mp4 的显示时间一致 |
 | `tracker.<role>.position` | float32 (3) | 米；`<role>` 为 camera、left_wrist、right_wrist、left_ankle、right_ankle |
-| `tracker.<role>.orientation` | float32 (4) | 四元数，顺序为 **x, y, z, w**（原始文件是 wxyz） |
+| `tracker.<role>.orientation` | float32 (4) | 四元数，顺序为 w, x, y, z |
 | `tracker.<role>.rotation_6d` | float32 (6) | 旋转矩阵的前两列，顺序为 `r00, r10, r20, r01, r11, r21` |
 | `gravity.direction` | float32 (3) | `(0, -1, 0)` |
 | `observation.hand.{left,right}.joint_positions` | float32 (21, 3) | 手套关节点（21 节点） |
@@ -86,7 +86,7 @@ python scripts/build_lerobot_dataset.py \
 
 1. **重新编码视频。** 原始 mp4 是可变帧率，`timestamp` 和显示时间最多差约 25 ms，会让 LeRobot 默认 `tolerance_s = 1e-4` 的视频读取报错。因此用 ffmpeg 裁掉顶部 110 像素并转成严格 30 fps，之后第 k 帧的显示时间正好是 k/30 秒。
 2. **以视频帧为时间轴。** tracker 从原始约 65 Hz 的数据插值到每个视频帧的时刻：位置线性插值，旋转用最短路径 Slerp。原始数据中断超过 0.25 秒，或者相邻两个样本位置跳变超过 0.10 m、旋转跳变超过 60°（tracker 重新定位或坏帧）时，不在这段之间插值，而是取较近一端的样本。每个 tracker 的插值统计写进 `quality.json`。
-3. **四元数转为 xyzw**，同时写出 `rotation_6d`。
+3. **写出四元数和 `rotation_6d`**，四元数顺序为 w, x, y, z。
 4. **手部与触觉**取自 `unified_30hz`。导出里缺失的手，用同一套触觉处理从原始手套文件重新计算，来源记在 `metadata.json` 和 `info.json` 里。某个区域没有可用触点时，分数和残差为 NaN，接触恒为 0，各区域覆盖率记在 `coverage_17`。
 5. **SMPL-X** 每个 episode 存一份 `smplx_episode.npz`，键与 `unified_30hz` 相同；体型、尺度和安装参数写在 `calibration.json` 里，不在每一行重复。
 6. **写入元数据**：`info.json`、`stats.json`、`tasks.parquet` 和 `episodes/…parquet`。
@@ -102,7 +102,7 @@ ds = LeRobotDataset("InternRobotics/EgoExplorer", root="EgoExplorer/dataset/lero
 print(ds.meta.info["fps"], ds.num_episodes, ds.num_frames)
 frame = ds[0]
 frame["observation.images.camera_0"]          # (3, H, W)
-frame["tracker.camera.orientation"]           # x, y, z, w
+frame["tracker.camera.orientation"]           # w, x, y, z
 ```
 
 SMPL-X 前向计算（与总览页、校验页的约定相同）：

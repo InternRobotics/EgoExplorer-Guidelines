@@ -12,9 +12,9 @@ EgoExplorer records people working and moving through real spaces with a wearabl
 
 | | Stream | Device | Native rate (measured) |
 |---|---|---|---|
-| A | Egocentric video | GoPro HERO13 Black + Media Mod, rigidly coupled to the head tracker | about 30 Hz on the Wuji rig; about 52–60 Hz on the MANUS rig |
-| B | Whole-body motion | 5 VIVE Ultimate Trackers: head, backs of both hands, outer side of both ankles | about 65 Hz on the Wuji rig; 90 Hz by default on the MANUS rig (older recordings about 15 Hz) |
-| C | Finger articulation | MANUS Metagloves Pro or Wuji gloves | MANUS about 220 Hz (older 25-node exports about 22 Hz); Wuji about 120 Hz |
+| A | Egocentric video | GoPro HERO13 Black + Media Mod, rigidly coupled to the head tracker | about 30 Hz on the Wuji rig; about 60 Hz on the MANUS rig |
+| B | Whole-body motion | 5 VIVE Ultimate Trackers: head, backs of both hands, outer side of both ankles | about 65 Hz on the Wuji rig; 90 Hz on the MANUS rig |
+| C | Finger articulation | MANUS Metagloves Pro or Wuji gloves | MANUS about 220 Hz; Wuji about 120 Hz |
 | D | Touch | Wuji gloves, 24 × 31 = 744 taxels per hand | about 120 Hz |
 
 ## 0.2 Processing
@@ -65,4 +65,4 @@ The code is at [InternRobotics/egoexplorer-toolkit](https://github.com/InternRob
 
 - **Building the rig and organising capture**: chapters 1–5.
 - **Processing existing data**: chapters 6–10.
-- **Before writing code that reads the data**: read chapter 11 (coordinates) and section 12.2. Three things go wrong most often: the streams never share a sample rate; some timestamps are relative and others absolute; raw and released files store quaternions in different orders.
+- **Before writing code that reads the data**: read chapter 11 (coordinates) and section 12.2. Two things go wrong most often: the streams never share a sample rate, and some timestamps are relative while others are absolute.

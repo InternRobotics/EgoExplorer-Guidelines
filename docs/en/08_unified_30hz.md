@@ -4,7 +4,7 @@
 
 ## 8.1 Why a unified export
 
-No two streams in a raw recording share a rate: trackers at 15, 65 or 90 Hz, gloves at 22, 120 or 220 Hz, video at 30–60 Hz. The projected SMPL-X uses the tracker's own timestamps, counted from 0, while every other stream uses the host's absolute time. Lining these arrays up by index gives wrong results without any error.
+No two streams in a raw recording share a rate: trackers at 65 or 90 Hz, gloves at 120 or 220 Hz, video at 30 or 60 Hz. The projected SMPL-X uses the tracker's own timestamps, counted from 0, while every other stream uses the host's absolute time. Lining these arrays up by index gives wrong results without any error.
 
 `export_unified_30hz.py` writes one npz per recording in which **element i of every per-frame array is the same instant**. The time grid sits on whole multiples of 1/30 second of absolute time, so the same instant has the same index in every recording.
 
@@ -38,7 +38,7 @@ python scripts/export_unified_nobody.py --sync-root $WORK/input/ego_data_sync \
 
 Each tracker is resampled on its own, from its own valid samples. Grid points outside a tracker's coverage get `tracker_valid=False` instead of a forced value (zero-length quaternions make Slerp fail). Every stream also has an `*_interpolated` flag, True when a grid point is more than one native sample period from the nearest real sample, which separates measurements from values bridged across a dropout.
 
-Round-trip error (resample to 30 Hz, then back to the original timestamps): MANUS 0.069° / 0.50 mm, Wuji 0.016° / 0.11 mm, with every touch peak kept, all far below the fitting error itself.
+Round-trip error (resample to 30 Hz, then back to the original timestamps) stays within 0.1° / 0.5 mm with every touch peak kept, far below the fitting error itself.
 
 ## 8.4 Contents of `unified_30hz/<recording>.npz`
 
@@ -48,7 +48,7 @@ Round-trip error (resample to 30 Hz, then back to the original timestamps): MANU
 |---|---|---|
 | `timestamps` | (T,) float64 | Host absolute time (s) |
 | `rate_hz` | () | 30.0 |
-| `upsample_ratio` | () | 30 ÷ native tracker rate. About 1.98 for early MANUS recordings (half the samples are interpolated); about 0.46 for Wuji |
+| `upsample_ratio` | () | 30 ÷ native tracker rate, for example about 0.46 on Wuji. Above 1, part of the values are interpolated |
 
 **Body and hands** (neutral SMPL-X, `num_betas=10`, `use_pca=False`)
 
@@ -76,8 +76,8 @@ Round-trip error (resample to 30 Hz, then back to the original timestamps): MANU
 
 | Key | Shape | Meaning |
 |---|---|---|
-| `glove_layout` | string | `manus25` or `wuji21` |
-| `glove_left_points`, `glove_right_points` | (T,N,3) | Joint points in the wrist's local frame, N = 25 or 21 |
+| `glove_layout` | string | `wuji21` for 21 nodes (the value for both MANUS and Wuji) |
+| `glove_left_points`, `glove_right_points` | (T,21,3) | Joint points in the wrist's local frame |
 | `glove_*_native_hz`, `glove_*_interpolated` | | |
 
 **Touch (Wuji only)**, `{S}` is `L` or `R`:
@@ -95,9 +95,6 @@ Round-trip error (resample to 30 Hz, then back to the original timestamps): MANU
 The 17 regions: `thumb_distal, thumb_proximal, index_{distal,middle,proximal}, middle_{…}, ring_{…}, pinky_{…}, palm_radial, palm_central, palm_ulnar`.
 
 The touch levels and their thresholds are defined at the top of `wuji_correct.py`: L0 raw values; L1 rolling baseline removed; L2 divided by a robust standard deviation; L3 gain correction (ablation only, not exported); L4 contact from the regional 80th percentile with hysteresis. On ageing gloves, what recovers the data is looking at change instead of absolute values (L1, L2); gain correction helps little. Glove health is estimated per recording, never averaged per day, because many lines come and go.
-
-!!! note
-    Early exports contained per-finger averages under the same key names `tactile_L0…L4`. They are not the L0–L4 levels described here.
 
 **Video**
 

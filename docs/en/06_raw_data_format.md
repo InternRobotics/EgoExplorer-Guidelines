@@ -30,22 +30,22 @@ Keys start with `tracker_0__pose`; `<role>` is one of the five roles in 1.3.
 | `tracker_0__pose.<role>.valid` | (T,) bool | Whether the sample is valid |
 | `meta` | string | JSON with roles, frame count, etc. |
 
-!!! warning "Quaternion order"
-    Raw tracker files are **wxyz**; glove skeletons, calibration files and the released LeRobot data are **xyzw**. Read raw files with the library's `raw_trackers.read_raw_tracker_npz()`, which converts the order. Some frames also have zero-length quaternions while marked valid, and a few recordings contain NaN; use only samples that are valid and finite.
+!!! warning "Invalid samples"
+    Some frames have zero-length quaternions while marked valid, and a few recordings contain NaN. Use only samples that are valid and finite; the library's `raw_trackers.read_raw_tracker_npz()` already does this.
 
 ## 6.2 Gloves: `*.npz`
 
 Keys follow `{device}__{stream}__t_us`, `__t_dev_us`, `__t_host_us` and `{device}__{stream}`. `glove_0` and `glove_1` are the two gloves; **which one is the left hand is given by `slot` in `session.json`**, not by the name.
 
-| Key | Wuji | MANUS (current, 21 nodes) | MANUS (older, 25 nodes) |
-|---|---|---|---|
-| `glove_*__hand_skeleton` | (T, 21, 7) | (T, 21, 7), reduced from 25 nodes at capture | (T, 25, 7) |
-| `glove_*__tactile` | (T, 744) | — | — |
-| `glove_*__hand_joint_angles.angles`, `.conf` | — | (T, 20), (T, 5) | present |
-| Rate | about 120 Hz | skeleton about 220 Hz, angles about 200 Hz | about 22 Hz |
+| Key | Wuji | MANUS |
+|---|---|---|
+| `glove_*__hand_skeleton` | (T, 21, 7) | (T, 21, 7), reduced from 25 nodes at capture |
+| `glove_*__tactile` | (T, 744) | — |
+| `glove_*__hand_joint_angles.angles`, `.conf` | — | (T, 20), (T, 5) |
+| Rate | about 120 Hz | skeleton about 220 Hz, angles about 200 Hz |
 
-- Each `hand_skeleton` row is `[px, py, pz, qx, qy, qz, qw]`: position plus an **xyzw** quaternion. Node 0 is the wrist.
-- The 21-node layout is MediaPipe's, with parents `[-1,0,1,2,3,0,5,6,7,0,9,10,11,0,13,14,15,0,17,18,19]`. The older 25-node layout adds four non-thumb metacarpal nodes. Decide the layout from the node count, not the device type.
+- Each `hand_skeleton` row is `[px, py, pz, qx, qy, qz, qw]` (position plus quaternion). Node 0 is the wrist.
+- The 21-node layout is MediaPipe's, with parents `[-1,0,1,2,3,0,5,6,7,0,9,10,11,0,13,14,15,0,17,18,19]`.
 - On Wuji gloves node 0 always has an identity rotation and carries no overall hand orientation, so the hand's orientation can only come from the wrist tracker. MANUS node 0 does carry orientation.
 - Wuji touch: 744 = 24 × 31, flattened row by row; `-1` marks an invalid taxel, about 28% of them. Raw touch values have a baseline and are not zero without contact.
 - `meta` is JSON with `device_type` (`wuji_glove` or `manus_glove`), each glove's serial `sn` and `slot`, and per-stream frame counts and durations.
@@ -69,8 +69,7 @@ Left/right correction (9.2) only rewrites this file in the corrected copy; the o
 
 | Rig | Video | Gloves | Trackers |
 |---|---|---|---|
-| MANUS (early recordings) | 52–60 Hz | about 22 Hz (25 nodes) / about 220 Hz (21 nodes) | **about 15 Hz** |
-| MANUS (current capture program) | about 60 Hz | about 220 Hz | 90 Hz by default |
+| MANUS | about 60 Hz | about 220 Hz | 90 Hz |
 | Wuji | **about 30 Hz** (nominal 60) | about 120 Hz | about 65 Hz |
 
-Streams within one recording run at different rates, and tracker rates differ by more than 4× between rigs. Always resample by timestamp (linear interpolation for positions, Slerp for rotations); never align by array index and never assume a fixed frame rate.
+Streams within one recording run at different rates, and the rates also differ between the two rigs. Always resample by timestamp (linear interpolation for positions, Slerp for rotations); never align by array index and never assume a fixed frame rate.

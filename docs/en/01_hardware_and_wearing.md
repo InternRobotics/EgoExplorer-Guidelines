@@ -13,8 +13,8 @@
 | Media module | GoPro Media Mod (HERO13/12/11) | 1 | [Taobao](https://e.tb.cn/h.jWg7Rd1eJVpQFGl?tk=sRXrTF8xGCs) | Provides the micro-HDMI output |
 | HDMI capture card | UGREEN 4K60Hz USB capture card (UVC) | 1 | [JD](https://3.cn/37Yq-tog?jkl=@Q3DcI0h3Iu7W@) | Shows up as `/dev/videoN` on Linux |
 | Video cable | micro-HDMI to HDMI | 1 | [JD](https://3.cn/37YriR-s?jkl=@XB71C3CgoM8X@) | |
-| Gloves (one of) | MANUS Metagloves Pro | 1 pair | TBD | Finger articulation only |
-| | Wuji gloves | 1 pair | TBD | Finger articulation plus 24 × 31 touch per hand; Ethernet |
+| Gloves (one of) | MANUS Metagloves Pro | 1 pair | [MANUS website](https://www.manus-meta.com/); contact their sales team | Finger articulation only |
+| | Wuji gloves | 1 pair | [Wuji website](https://wuji.tech/); contact their sales team | Finger articulation plus 24 × 31 touch per hand; Ethernet |
 | USB Ethernet adapters | UGREEN USB 3.0 gigabit adapter | 2 | [JD](https://3.cn/37-YsP1x?jkl=@VER0R1iYlA3G@) | Wuji rig, one port per glove |
 | Straps | VIVE tracker straps, GoPro head strap | 1 head strap, 4 straps | [Tracker straps](https://e.tb.cn/h.jX7EVqK0xb7nHvB?tk=vOtgTFj8BVK) · [GoPro head strap](https://e.tb.cn/h.jc684WNxd6oG6gN?tk=BdM7TFj9A15) | |
 | Linux capture PC | Ubuntu 22.04 or later | 1 | — | Wuji rig only; a portable device works |
@@ -66,4 +66,4 @@ Two people work best: one wears the rig, the other checks.
     - **Sides must match the SteamVR roles.** Swapped trackers make the SMPL-X solve fail.
     - **Keep the straps tight.** A tracker that slowly slides looks normal frame by frame, and the error is quietly absorbed into the body pose.
 
-**Wuji touch.** The gloves' touch sensitivity drops slowly with use, and some lines become intermittent. Redo the touch calibration in Wuji Studio (about 15 seconds) before each recording, so the glove's condition can be estimated recording by recording.
+**Wuji touch.** The gloves' touch sensitivity drops slowly with use, and some lines become intermittent. Run a touch calibration in Wuji Studio (about 15 seconds) once a day before capturing, so the glove's condition can be tracked.
